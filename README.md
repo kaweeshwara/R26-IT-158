@@ -1,7 +1,7 @@
 # R26-IT-158 | SinhalaCheck - Sinhala Fake News Detection System
 
 **Project ID:** R26-IT-158
-**Academic Year:** 2025-2026
+**Academic Year:** - 2026
 **Degree Program:** B.Sc. (Hons) in Information Technology
 **Institution:** SLIIT
 
