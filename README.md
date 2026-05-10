@@ -20,7 +20,7 @@ Sri Lankan social media and news platforms.
 | Student ID | Name | Component | Role |
 |------------|------|-----------|------|
 | IT22331304 | Kaweeshwara P.D.S. | NLP Content Credibility Analysis | Team Leader |
-| TBD | Caledra | Fusion Engine | Team Member |
+| IT22370778 | Caledra S.T.H | Source credibility and temporal verification | Team Member |
 | TBD | Wishmitha | TBD | Team Member |
 
 ---
