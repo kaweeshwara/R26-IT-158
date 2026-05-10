@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "SinhalaCheck - Sinhala Fake News Detection System",
-    "slug": "SinhalaCheck - Sinhala Fake News Detection System",
+    "name": "SinhalaCheckApp2",
+    "slug": "SinhalaCheckApp2",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
