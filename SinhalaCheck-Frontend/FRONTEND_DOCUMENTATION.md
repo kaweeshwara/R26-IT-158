@@ -1,4 +1,4 @@
-# SinhalaCheck — Mobile App (Frontend)
+## SinhalaCheck — Mobile App (Frontend)
 
 ## Client Walkthrough & Code Explanation Guide
 
@@ -9,7 +9,7 @@
 
 ---
 
-## How to Use This Document
+## How to Use This Document 
 
 This is a **presenter's guide**. Read top-to-bottom with the client and you will have explained the entire frontend codebase. Each step has:
 
