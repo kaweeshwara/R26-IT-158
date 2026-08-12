@@ -1,4 +1,4 @@
-"""FastAPI entry point for the SinhalaCheck source-credibility module.
+"""FastAPI entry   point for the SinhalaCheck source-credibility module.
 
 Endpoints
 ---------
