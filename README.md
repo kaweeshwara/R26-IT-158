@@ -79,3 +79,6 @@ corpus for credibility classification.
 - models/ - Saved model files
 - data/ - Dataset files
 - app/ - Flask application (upcoming)
+
+
+LIME Experiments Notebook: https://colab.research.google.com/drive/16CS93JWN3yz-qY4yv7uSBUVuSd0bhZ4Y#scrollTo=t8mTSZ2pJT35
