@@ -1,0 +1,5 @@
+fusion_engine/model/
+__pycache__/
+*.pyc
+node_modules/
+.expo/
