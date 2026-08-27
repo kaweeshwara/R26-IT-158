@@ -78,14 +78,18 @@ export default function HomeScreen() {
 
       const resultRes = await fetchWithTimeout(`${SPACE_URL}/gradio_api/call/predict/${eventId}`);
       const resultText = await resultRes.text();
-      const dataLine = resultText.split('\n').find((line) => line.startsWith('data:'));
 
-      if (!dataLine) {
+      // Gradio streams multiple "data:" lines (heartbeats + final result).
+      // We need the LAST one, which contains the actual completed result.
+      const dataLines = resultText.split('\n').filter((line) => line.startsWith('data:'));
+
+      if (dataLines.length === 0) {
         setError('Unexpected response from server. Please try again.');
         return;
       }
 
-      const parsed = JSON.parse(dataLine.replace('data:', '').trim());
+      const lastDataLine = dataLines[dataLines.length - 1];
+      const parsed = JSON.parse(lastDataLine.replace('data:', '').trim());
       const finalResult = parsed[0];
 
       setResult(finalResult);
