@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SinhalaCheck</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#ffffff; --ink:#1a1d21; --muted:#6b7280; --line:#e5e7eb;
+    --accent:#1f6f8b; --ok:#2f7d5d; --warn:#b8860b; --bad:#b5443a;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Sinhala",sans-serif}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px}
+  header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
+         border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:24px;flex-wrap:wrap}
+  h1{margin:0;font-size:22px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .status{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#c9ced6;margin-right:5px}
+  .dot.up{background:var(--ok)} .dot.down{background:var(--bad)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .panel h2{margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
+  textarea,input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:7px;
+                 font:inherit;font-size:14px;background:#fff;color:var(--ink)}
+  textarea{min-height:150px;resize:vertical;line-height:1.6}
+  textarea:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  button{margin-top:16px;width:100%;padding:11px;border:0;border-radius:7px;background:var(--accent);
+         color:#fff;font:inherit;font-weight:600;cursor:pointer}
+  button:hover{background:#195a72} button:disabled{background:#9fb4bd;cursor:default}
+  .samples{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  .samples button{width:auto;margin:0;padding:5px 10px;font-size:12px;font-weight:400;
+                  background:#eef1f4;color:var(--ink);border:1px solid var(--line)}
+  .samples button:hover{background:#e2e7ec}
+
+  .verdict{text-align:center;padding:20px 14px;border-radius:9px;margin-bottom:16px;border:1px solid}
+  .verdict .score{font-size:38px;font-weight:650;letter-spacing:-.02em;line-height:1}
+  .verdict .lab{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-top:7px}
+  .v-ok{background:#eef6f1;border-color:#c5e0d2;color:var(--ok)}
+  .v-warn{background:#fbf5e6;border-color:#ecdcb4;color:var(--warn)}
+  .v-bad{background:#fbeeed;border-color:#eccbc7;color:var(--bad)}
+
+  .bar{margin:11px 0}
+  .bar .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px}
+  .bar .top b{font-variant-numeric:tabular-nums;font-weight:600}
+  .track{height:7px;background:#eceff2;border-radius:4px;overflow:hidden}
+  .fill{height:100%;background:var(--accent);border-radius:4px}
+  .bar.na .top{color:var(--muted)} .bar.na .fill{background:#cdd3da}
+  .wt{font-size:11px;color:var(--muted);margin-top:3px}
+
+  ul.reasons{margin:12px 0 0;padding-left:17px}
+  ul.reasons li{margin:5px 0;font-size:13.5px}
+  .note{font-size:12px;color:var(--muted);margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .warnbox{background:#fbf5e6;border:1px solid #ecdcb4;border-radius:7px;padding:9px 11px;
+           font-size:12.5px;color:#7a5c15;margin-bottom:14px}
+  .empty{color:var(--muted);text-align:center;padding:46px 10px;font-size:14px}
+  .err{background:#fbeeed;border:1px solid #eccbc7;color:var(--bad);padding:11px;border-radius:7px;font-size:13.5px}
+  details{margin-top:14px} summary{cursor:pointer;font-size:12px;color:var(--muted)}
+  pre{background:#f3f5f7;border:1px solid var(--line);border-radius:7px;padding:11px;
+      overflow:auto;font-size:11.5px;max-height:300px;margin-top:9px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>SinhalaCheck</h1>
+      <div class="sub">Sinhala misinformation detection &middot; R26-IT-158 &middot; SLIIT</div>
+    </div>
+    <div class="status" id="status">
+      <span><span class="dot" id="d1"></span>Module 1 &middot; content</span>
+      <span><span class="dot" id="d2"></span>Module 2 &middot; source &amp; time</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Input</h2>
+      <label for="text">Article text or forwarded message</label>
+      <textarea id="text" placeholder="Paste Sinhala news text or a WhatsApp forward..."></textarea>
+
+      <label for="url">Source URL <span style="text-transform:none">— optional; enables Module 2</span></label>
+      <input id="url" placeholder="https://www.adaderana.lk/news/...">
+
+      <div class="row">
+        <div>
+          <label for="date">Published date — optional</label>
+          <input id="date" type="date">
+        </div>
+        <div>
+          <label for="cross">Corroborating sources — optional</label>
+          <input id="cross" type="number" min="0" placeholder="e.g. 3">
+        </div>
+      </div>
+
+      <button id="go">Analyse</button>
+
+      <div class="samples">
+        <button data-s="1">Sample: credible article</button>
+        <button data-s="2">Sample: suspicious forward</button>
+        <button data-s="clear">Clear</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Result</h2>
+      <div id="out"><div class="empty">Results will appear here.</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const SAMPLES = {
+  1: {text:"කොරෝනා වෛරසය මේ වන විට රටවල් 200කට අධික සංඛ්‍යාවකට පැතිර ගොස් තිබේ. එම රටවලින් සැලකිය යුතු සංඛ්‍යාවක් ජාත්‍යන්තර සෞඛ්‍ය මාර්ගෝපදේශ අනුගමනය කරමින් සිටී. සෞඛ්‍ය අමාත්‍යාංශය පවසන පරිදි නව රෝගීන් සංඛ්‍යාව පහත වැටී ඇත.",
+      url:"https://www.adaderana.lk/news/100123/covid-update"},
+  2: {text:"හදිසි පණිවිඩයයි! බැංකුව හෙට සිට සියලු ගිණුම් අත්හිටුවනවා කියලා තහවුරු වෙලා තියෙනවා. මේක delete කරන්න කලින් share කරන්න! ඔවුන් ඔබට මේක දැනගන්න දෙන්නේ නැහැ.",
+      url:""}
+};
+
+async function health(){
+  try{
+    const r = await fetch('/health'); const j = await r.json();
+    $('d1').className = 'dot ' + (j.module1==='ok'?'up':'down');
+    $('d2').className = 'dot ' + (j.module2==='ok'?'up':'down');
+  }catch(e){ $('d1').className='dot down'; $('d2').className='dot down'; }
+}
+health(); setInterval(health, 15000);
+
+document.querySelectorAll('.samples button').forEach(b=>{
+  b.onclick = () => {
+    const k = b.dataset.s;
+    if(k==='clear'){ $('text').value=''; $('url').value=''; $('date').value=''; $('cross').value=''; return; }
+    $('text').value = SAMPLES[k].text; $('url').value = SAMPLES[k].url;
+  };
+});
+
+const pct = v => (v*100).toFixed(1) + '%';
+
+function bar(name, val, weight){
+  if(val === null || val === undefined){
+    return `<div class="bar na"><div class="top"><span>${name}</span><b>not available</b></div>
+            <div class="track"><div class="fill" style="width:0%"></div></div>
+            <div class="wt">no signal — excluded from the score</div></div>`;
+  }
+  const w = weight !== undefined ? `<div class="wt">effective weight ${(weight*100).toFixed(0)}%</div>` : '';
+  return `<div class="bar"><div class="top"><span>${name}</span><b>${pct(val)}</b></div>
+          <div class="track"><div class="fill" style="width:${(val*100).toFixed(1)}%"></div></div>${w}</div>`;
+}
+
+function render(d){
+  const v = d.verdict;
+  const cls = v==='CREDIBLE' ? 'v-ok' : v==='UNCERTAIN' ? 'v-warn' : 'v-bad';
+  const eff = d.fusion_detail.effective_weights || {};
+
+  let html = `<div class="verdict ${cls}">
+      <div class="score">${pct(d.final_score)}</div>
+      <div class="lab">${v}</div>
+    </div>`;
+
+  if(!d.weights_provenance.is_fitted){
+    html += `<div class="warnbox"><b>Placeholder weights.</b> These combination weights have not
+      been fitted to data yet — run <code>scripts/fit_fusion_weights.py</code>. Treat the
+      individual module scores as meaningful and the combined figure as provisional.</div>`;
+  }
+
+  html += bar('Content credibility', d.breakdown.content, eff.content);
+  html += bar('Source credibility',  d.breakdown.source,  eff.source);
+  html += bar('Recency',             d.breakdown.temporal, eff.temporal);
+
+  if(d.fusion_detail.renormalised){
+    html += `<div class="note">Only ${d.fusion_detail.signals_used.join(' and ')} available;
+      weights renormalised over the signals present rather than substituting a neutral value
+      for ${d.fusion_detail.signals_missing.join(' and ')}.</div>`;
+  }
+
+  if(d.reasons && d.reasons.length){
+    html += `<ul class="reasons">${d.reasons.map(r=>`<li>${r}</li>`).join('')}</ul>`;
+  }
+
+  const p = d.weights_provenance;
+  html += `<div class="note">Weights: ${p.method}${p.n_samples?` · fitted on ${p.n_samples} documents`:''}.
+     Module 1: LaBSE, cross-validated macro-F1 0.753 ± 0.013 (n=3,000).</div>`;
+
+  html += `<details><summary>Raw response</summary><pre>${
+     JSON.stringify(d,null,2).replace(/</g,'&lt;')}</pre></details>`;
+
+  $('out').innerHTML = html;
+}
+
+$('go').onclick = async () => {
+  const text = $('text').value.trim();
+  if(!text){ $('out').innerHTML = '<div class="err">Enter some text to analyse.</div>'; return; }
+
+  const body = { text };
+  if($('url').value.trim()) body.url = $('url').value.trim();
+  if($('date').value) body.published_date = new Date($('date').value).toISOString();
+  if($('cross').value !== '') body.cross_count = parseInt($('cross').value, 10);
+
+  $('go').disabled = true; $('go').textContent = 'Analysing...';
+  $('out').innerHTML = '<div class="empty">Running content model...</div>';
+  try{
+    const r = await fetch('/analyze', {method:'POST', headers:{'Content-Type':'application/json'},
+                                       body: JSON.stringify(body)});
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.detail || ('HTTP ' + r.status));
+    render(j);
+  }catch(e){
+    $('out').innerHTML = `<div class="err"><b>Analysis failed.</b><br>${e.message}
+      <br><br>Check that all three services are running — see README.</div>`;
+  }finally{
+    $('go').disabled = false; $('go').textContent = 'Analyse';
+  }
+};
+</script>
+</body>
+</html>

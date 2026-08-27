@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Fusion weights for combining module scores into a final credibility score.",
+    "",
+    "PROVENANCE MATTERS HERE. The review panel specifically asked that weights be set by",
+    "'standard and accepted methods' rather than chosen by hand. Run",
+    "scripts/fit_fusion_weights.py to replace this file with weights fitted by logistic",
+    "regression on the labelled corpus; that script writes `method` and `fitted_on` so the",
+    "provenance travels with the numbers.",
+    "",
+    "Until that has been run, these are UNFITTED placeholders and the service says so in",
+    "every response via `weights_provenance`."
+  ],
+  "method": "uniform_placeholder",
+  "fitted_on": null,
+  "fitted_at": null,
+  "n_samples": null,
+  "weights": {
+    "content": 0.5,
+    "source": 0.3,
+    "temporal": 0.2
+  },
+  "intercept": 0.0,
+  "thresholds": {
+    "credible": 0.61,
+    "uncertain": 0.41
+  },
+  "notes": "Placeholder weights. Not fitted. Do not present these as an empirical result."
+}

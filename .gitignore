@@ -1,0 +1,22 @@
+# Module 1's transformer weights are ~1.9GB, beyond GitHub's 100MB file limit.
+# The model is published to the Hugging Face Hub instead; see README.
+# Scoped to the repo root so it does not also exclude Module 2's small .pkl,
+# which the integrated app genuinely needs.
+/model/
+*.safetensors
+*.bin
+SinhalaCheck_model_*/
+
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+.env
+
+# large local data + generated analysis output
+Corpus.xlsx
+Corpus.csv
+Corpus_published.csv
+analysis/
+*.zip
