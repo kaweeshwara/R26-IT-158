@@ -1,15 +1,38 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
-import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Your computer's WiFi IP address (same one Expo showed you)
-const API_URL = 'http://192.168.8.169:8000/predict';
+const SPACE_URL = 'https://wishmitharuwanpathirana-sinhalacheck-api.hf.space';
+const HISTORY_KEY = 'sinhalacheck_history';
+
+// ---- USER STUDY VERSION TOGGLE ----
+// Version A (score only): set to false
+// Version B (score + LIME + explanations): set to true
+const SHOW_LIME = true;
 
 export default function HomeScreen() {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
+
+  const saveToHistory = async (checkedText: string, response: any) => {
+    try {
+      const existing = await AsyncStorage.getItem(HISTORY_KEY);
+      const history = existing ? JSON.parse(existing) : [];
+      const newEntry = {
+        id: Date.now().toString(),
+        text: checkedText,
+        label: response.label,
+        score: response.final_score,
+        date: new Date().toLocaleString(),
+      };
+      const updated = [newEntry, ...history].slice(0, 20);
+      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.log('Failed to save history', e);
+    }
+  };
 
   const checkText = async () => {
     if (!text.trim()) {
@@ -20,14 +43,24 @@ export default function HomeScreen() {
     setError('');
     setResult(null);
     try {
-      const response = await axios.post(API_URL, {
-        text: text,
-        source_score: 0.6,
-        temporal_score: 0.8,
+      const submitRes = await fetch(`${SPACE_URL}/gradio_api/call/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: [text, 0.6, 0.8] }),
       });
-      setResult(response.data);
+      const submitData = await submitRes.json();
+      const eventId = submitData.event_id;
+
+      const resultRes = await fetch(`${SPACE_URL}/gradio_api/call/predict/${eventId}`);
+      const resultText = await resultRes.text();
+      const dataLine = resultText.split('\n').find((line) => line.startsWith('data:'));
+      const parsed = JSON.parse(dataLine!.replace('data:', '').trim());
+      const finalResult = parsed[0];
+
+      setResult(finalResult);
+      await saveToHistory(text, finalResult);
     } catch (err) {
-      setError('Could not connect to server. Check WiFi and that the server is running.');
+      setError('Could not connect to server. Check your internet connection.');
     } finally {
       setLoading(false);
     }
@@ -58,6 +91,7 @@ export default function HomeScreen() {
       </View>
 
       {loading && <ActivityIndicator size="large" color="#1F3864" style={{ marginTop: 20 }} />}
+      {loading && <Text style={styles.loadingText}>This can take 30-60 seconds...</Text>}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -66,12 +100,16 @@ export default function HomeScreen() {
           <Text style={styles.verdict}>{result.label}</Text>
           <Text style={styles.score}>Score: {result.final_score}</Text>
 
-          <Text style={styles.sectionTitle}>Why?</Text>
-          {result.lime_explanations.map((item: any, index: number) => (
-            <Text key={index} style={styles.reason}>
-              • {item.word} ({item.weight > 0 ? '+' : ''}{item.weight})
-            </Text>
-          ))}
+          {SHOW_LIME && result.lime_explanations && (
+            <>
+              <Text style={styles.sectionTitle}>Why?</Text>
+              {result.lime_explanations.map((item: any, index: number) => (
+                <Text key={index} style={styles.reason}>
+                  • {item.word} ({item.weight > 0 ? '+' : ''}{item.weight})
+                </Text>
+              ))}
+            </>
+          )}
         </View>
       )}
     </ScrollView>
@@ -85,6 +123,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 12, fontSize: 16, textAlignVertical: 'top', minHeight: 120 },
   button: { marginTop: 16, borderRadius: 10, overflow: 'hidden' },
+  loadingText: { textAlign: 'center', color: '#666', marginTop: 8, fontSize: 12 },
   error: { color: 'red', marginTop: 12, textAlign: 'center' },
   resultBox: { marginTop: 24, padding: 16, backgroundColor: '#f5f5f5', borderRadius: 12 },
   verdict: { fontSize: 22, fontWeight: 'bold', color: '#1F3864', textAlign: 'center' },
