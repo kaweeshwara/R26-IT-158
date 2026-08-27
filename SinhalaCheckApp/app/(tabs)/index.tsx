@@ -28,10 +28,37 @@ const calculateYearsOld = (dateStr: string): number | null => {
   return Math.round(years * 10) / 10;
 };
 
+const extractTextFromHtml = (html: string): string => {
+  let cleaned = html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.slice(0, 3000);
+};
+
+const isValidUrl = (str: string): boolean => {
+  try {
+    const u = new URL(str);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export default function HomeScreen() {
   const [text, setText] = useState('');
+  const [urlInput, setUrlInput] = useState('');
   const [publishDate, setPublishDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState('');
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
 
@@ -54,18 +81,49 @@ export default function HomeScreen() {
   };
 
   const checkText = async () => {
-    if (!text.trim()) {
-      setError('Please enter some text to check');
+    const hasUrl = urlInput.trim().length > 0;
+    const hasText = text.trim().length > 0;
+
+    if (!hasUrl && !hasText) {
+      setError('Please enter some text or a URL to check');
       return;
     }
+    if (hasUrl && !isValidUrl(urlInput.trim())) {
+      setError('Please enter a valid URL (starting with http:// or https://)');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setResult(null);
+
     try {
+      let textToAnalyze = text.trim();
+
+      if (hasUrl) {
+        setLoadingStage('Fetching article from URL...');
+        const pageRes = await fetchWithTimeout(urlInput.trim(), {}, 20000);
+        if (!pageRes.ok) {
+          setError('Could not fetch that URL. Please check the link and try again.');
+          setLoading(false);
+          return;
+        }
+        const html = await pageRes.text();
+        textToAnalyze = extractTextFromHtml(html);
+
+        if (textToAnalyze.length < 30) {
+          setError('Could not extract readable text from that page.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      setLoadingStage('Analyzing credibility...');
+
       const submitRes = await fetchWithTimeout(`${SPACE_URL}/gradio_api/call/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: [text, 0.6, 0.8] }),
+        body: JSON.stringify({ data: [textToAnalyze, 0.6, 0.8] }),
       });
 
       if (!submitRes.ok) {
@@ -79,10 +137,7 @@ export default function HomeScreen() {
       const resultRes = await fetchWithTimeout(`${SPACE_URL}/gradio_api/call/predict/${eventId}`);
       const resultText = await resultRes.text();
 
-      // Gradio streams multiple "data:" lines (heartbeats + final result).
-      // We need the LAST one, which contains the actual completed result.
       const dataLines = resultText.split('\n').filter((line) => line.startsWith('data:'));
-
       if (dataLines.length === 0) {
         setError('Unexpected response from server. Please try again.');
         return;
@@ -92,8 +147,8 @@ export default function HomeScreen() {
       const parsed = JSON.parse(lastDataLine.replace('data:', '').trim());
       const finalResult = parsed[0];
 
-      setResult(finalResult);
-      await saveToHistory(text, finalResult);
+      setResult({ ...finalResult, _analyzedText: textToAnalyze });
+      await saveToHistory(textToAnalyze, finalResult);
     } catch (err: any) {
       if (err.name === 'AbortError') {
         setError('Request timed out — the server might be busy, please try again.');
@@ -104,6 +159,7 @@ export default function HomeScreen() {
       }
     } finally {
       setLoading(false);
+      setLoadingStage('');
     }
   };
 
@@ -124,6 +180,19 @@ export default function HomeScreen() {
         onChangeText={setText}
       />
 
+      <Text style={styles.orText}>— OR —</Text>
+
+      <TextInput
+        style={styles.dateInput}
+        placeholder="Paste article URL (https://...)"
+        placeholderTextColor="#999"
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="url"
+        value={urlInput}
+        onChangeText={setUrlInput}
+      />
+
       <TextInput
         style={styles.dateInput}
         placeholder="Publish date (optional, e.g. 2020-04-01)"
@@ -142,12 +211,19 @@ export default function HomeScreen() {
       </View>
 
       {loading && <ActivityIndicator size="large" color="#1F3864" style={{ marginTop: 20 }} />}
-      {loading && <Text style={styles.loadingText}>This can take 15-30 seconds...</Text>}
+      {loading && <Text style={styles.loadingText}>{loadingStage || 'This can take 15-30 seconds...'}</Text>}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {result && (
         <View style={styles.resultBox}>
+          {result._analyzedText && (
+            <View style={styles.previewBox}>
+              <Text style={styles.previewLabel}>Text analyzed:</Text>
+              <Text style={styles.previewText} numberOfLines={4}>{result._analyzedText}</Text>
+            </View>
+          )}
+
           <Text style={styles.verdict}>{result.label}</Text>
           <Text style={styles.score}>Score: {result.final_score}</Text>
 
@@ -181,11 +257,15 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: 'bold', color: '#1F3864', textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 12, fontSize: 16, textAlignVertical: 'top', minHeight: 120 },
+  orText: { textAlign: 'center', color: '#999', marginVertical: 8, fontSize: 12 },
   dateInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 10, fontSize: 14, marginTop: 10 },
   button: { marginTop: 16, borderRadius: 10, overflow: 'hidden' },
   loadingText: { textAlign: 'center', color: '#666', marginTop: 8, fontSize: 12 },
   error: { color: 'red', marginTop: 12, textAlign: 'center' },
   resultBox: { marginTop: 24, padding: 16, backgroundColor: '#f5f5f5', borderRadius: 12 },
+  previewBox: { backgroundColor: '#EEF2F8', padding: 10, borderRadius: 8, marginBottom: 12 },
+  previewLabel: { fontSize: 11, fontWeight: '600', color: '#666', marginBottom: 4 },
+  previewText: { fontSize: 12, color: '#333', fontStyle: 'italic' },
   verdict: { fontSize: 22, fontWeight: 'bold', color: '#1F3864', textAlign: 'center' },
   score: { fontSize: 16, color: '#333', textAlign: 'center', marginBottom: 12 },
   warningBox: { marginTop: 10, padding: 10, borderRadius: 8, backgroundColor: '#FDF3E7', borderWidth: 1, borderColor: '#F0C878' },
