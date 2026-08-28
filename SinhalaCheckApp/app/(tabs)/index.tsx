@@ -93,10 +93,12 @@ export default function HomeScreen() {
   const [loadingStage, setLoadingStage] = useState('');
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
-
-  // ---- Settings (loaded from Settings tab) ----
   const [showLime, setShowLime] = useState(true);
   const [fontScale, setFontScale] = useState(false);
+
+  // ---- Feedback state ----
+  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
+  const [feedbackGiven, setFeedbackGiven] = useState<'correct' | 'incorrect' | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -116,24 +118,39 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // Font-size helper: scales up when "Large Text" is enabled
   const fs = (base: number) => (fontScale ? Math.round(base * 1.3) : base);
 
-  const saveToHistory = async (checkedText: string, response: any) => {
+  const saveToHistory = async (id: string, checkedText: string, response: any) => {
     try {
       const existing = await AsyncStorage.getItem(HISTORY_KEY);
       const history = existing ? JSON.parse(existing) : [];
       const newEntry = {
-        id: Date.now().toString(),
+        id,
         text: checkedText,
         label: response.label,
         score: response.final_score,
         date: new Date().toLocaleString(),
+        feedback: null,
       };
       const updated = [newEntry, ...history].slice(0, 20);
       await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
     } catch (e) {
       console.log('Failed to save history', e);
+    }
+  };
+
+  const submitFeedback = async (verdict: 'correct' | 'incorrect') => {
+    if (!currentEntryId) return;
+    setFeedbackGiven(verdict);
+    try {
+      const existing = await AsyncStorage.getItem(HISTORY_KEY);
+      const history = existing ? JSON.parse(existing) : [];
+      const updated = history.map((item: any) =>
+        item.id === currentEntryId ? { ...item, feedback: verdict } : item
+      );
+      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.log('Failed to save feedback', e);
     }
   };
 
@@ -153,6 +170,8 @@ export default function HomeScreen() {
     setLoading(true);
     setError('');
     setResult(null);
+    setFeedbackGiven(null);
+    setCurrentEntryId(null);
 
     try {
       let textToAnalyze = text.trim();
@@ -204,8 +223,10 @@ export default function HomeScreen() {
       const parsed = JSON.parse(lastDataLine.replace('data:', '').trim());
       const finalResult = parsed[0];
 
+      const newId = Date.now().toString();
       setResult({ ...finalResult, _analyzedText: textToAnalyze });
-      await saveToHistory(textToAnalyze, finalResult);
+      setCurrentEntryId(newId);
+      await saveToHistory(newId, textToAnalyze, finalResult);
     } catch (err: any) {
       if (err.name === 'AbortError') {
         setError('Request timed out — the server might be busy, please try again.');
@@ -353,6 +374,33 @@ export default function HomeScreen() {
               ))}
             </View>
           )}
+
+          {/* ---- Feedback section ---- */}
+          <View style={styles.feedbackBox}>
+            {feedbackGiven ? (
+              <Text style={[styles.feedbackThanks, { fontSize: fs(13) }]}>
+                {feedbackGiven === 'correct' ? '✅ Thanks — glad it was accurate!' : '📝 Thanks — your feedback helps improve this research.'}
+              </Text>
+            ) : (
+              <>
+                <Text style={[styles.feedbackQuestion, { fontSize: fs(13) }]}>Was this verdict correct?</Text>
+                <View style={styles.feedbackRow}>
+                  <TouchableOpacity
+                    style={[styles.feedbackBtn, styles.feedbackBtnYes]}
+                    onPress={() => submitFeedback('correct')}
+                  >
+                    <Text style={[styles.feedbackBtnText, { fontSize: fs(13) }]}>👍 Yes</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.feedbackBtn, styles.feedbackBtnNo]}
+                    onPress={() => submitFeedback('incorrect')}
+                  >
+                    <Text style={[styles.feedbackBtnText, { fontSize: fs(13) }]}>👎 No</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
         </View>
       )}
     </ScrollView>
@@ -445,4 +493,15 @@ const styles = StyleSheet.create({
   reasonDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
   reasonWord: { flex: 1, color: INK, fontWeight: '600' },
   reasonWeight: { color: MUTED, fontVariant: ['tabular-nums'] },
+
+  feedbackBox: {
+    marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: BORDER, alignItems: 'center',
+  },
+  feedbackQuestion: { color: MUTED, fontWeight: '600', marginBottom: 10 },
+  feedbackRow: { flexDirection: 'row', gap: 12 },
+  feedbackBtn: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  feedbackBtnYes: { backgroundColor: EMERALD_BG, borderColor: EMERALD },
+  feedbackBtnNo: { backgroundColor: BRICK_BG, borderColor: BRICK },
+  feedbackBtnText: { fontWeight: '700', color: INK },
+  feedbackThanks: { color: MUTED, fontStyle: 'italic' },
 });
