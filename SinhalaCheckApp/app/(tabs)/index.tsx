@@ -6,7 +6,6 @@ const SPACE_URL = 'https://wishmitharuwanpathirana-sinhalacheck-api.hf.space';
 const HISTORY_KEY = 'sinhalacheck_history';
 const SHOW_LIME = true;
 
-// ---- Palette ----
 const INK = '#1B2340';
 const INDIGO = '#2A3B8F';
 const INDIGO_DARK = '#1E2C6E';
@@ -69,11 +68,21 @@ const isValidUrl = (str: string): boolean => {
   }
 };
 
-// ---- Verdict styling lookup ----
 const verdictStyle = (label: string) => {
   if (label === 'CREDIBLE') return { fg: EMERALD, bg: EMERALD_BG, ring: EMERALD };
   if (label === 'UNCERTAIN') return { fg: AMBER, bg: AMBER_BG, ring: AMBER };
   return { fg: BRICK, bg: BRICK_BG, ring: BRICK };
+};
+
+// ---- Plain-language explanation for each verdict, shown to the user ----
+const verdictDescription = (label: string) => {
+  if (label === 'CREDIBLE') {
+    return 'This content appears trustworthy based on our analysis. Always verify important information from official sources before sharing.';
+  }
+  if (label === 'UNCERTAIN') {
+    return 'We could not confidently determine if this is true or false. Treat it with caution — cross-check with reliable news sources before believing or sharing.';
+  }
+  return 'This content shows strong signs of being false or misleading. Avoid sharing this, and verify from trusted, official sources.';
 };
 
 export default function HomeScreen() {
@@ -192,7 +201,6 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* ---- Header with seal mark ---- */}
       <View style={styles.header}>
         <View style={styles.sealMark}>
           <View style={styles.sealCheck} />
@@ -201,7 +209,6 @@ export default function HomeScreen() {
         <Text style={styles.subtitle}>SINHALA MISINFORMATION VERIFIER</Text>
       </View>
 
-      {/* ---- Input card ---- */}
       <View style={styles.card}>
         <Text style={styles.label}>NEWS TEXT</Text>
         <TextInput
@@ -257,7 +264,6 @@ export default function HomeScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
 
-      {/* ---- Result "certificate" card ---- */}
       {result && vStyle && (
         <View style={styles.resultCard}>
           <View style={styles.resultTopRow}>
@@ -271,6 +277,8 @@ export default function HomeScreen() {
           <View style={[styles.verdictPill, { backgroundColor: vStyle.bg }]}>
             <Text style={[styles.verdictPillText, { color: vStyle.fg }]}>Fusion score {result.final_score}</Text>
           </View>
+
+          <Text style={styles.verdictDescription}>{verdictDescription(result.label)}</Text>
 
           {result._analyzedText && (
             <View style={styles.quoteBox}>
@@ -385,6 +393,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, marginTop: 8,
   },
   verdictPillText: { fontSize: 12, fontWeight: '700' },
+  verdictDescription: { fontSize: 13, color: '#5B5847', marginTop: 10, lineHeight: 19 },
 
   quoteBox: { marginTop: 18, paddingLeft: 14, borderLeftWidth: 3, borderLeftColor: GOLD },
   quoteMark: { fontSize: 28, color: GOLD, lineHeight: 20, fontWeight: '800' },
