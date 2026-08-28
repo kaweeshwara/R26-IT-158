@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 
@@ -96,7 +96,6 @@ export default function HomeScreen() {
   const [showLime, setShowLime] = useState(true);
   const [fontScale, setFontScale] = useState(false);
 
-  // ---- Feedback state ----
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
   const [feedbackGiven, setFeedbackGiven] = useState<'correct' | 'incorrect' | null>(null);
 
@@ -151,6 +150,17 @@ export default function HomeScreen() {
       await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
     } catch (e) {
       console.log('Failed to save feedback', e);
+    }
+  };
+
+  const shareResult = async () => {
+    if (!result) return;
+    try {
+      await Share.share({
+        message: `SinhalaCheck Verdict: ${result.label} (Score: ${result.final_score})\n\nChecked with SinhalaCheck — Sinhala Fake News Detector`,
+      });
+    } catch (e) {
+      console.log('Share failed', e);
     }
   };
 
@@ -375,7 +385,10 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* ---- Feedback section ---- */}
+          <TouchableOpacity style={styles.shareButton} onPress={shareResult}>
+            <Text style={[styles.shareButtonText, { fontSize: fs(13) }]}>📤 Share this result</Text>
+          </TouchableOpacity>
+
           <View style={styles.feedbackBox}>
             {feedbackGiven ? (
               <Text style={[styles.feedbackThanks, { fontSize: fs(13) }]}>
@@ -493,6 +506,12 @@ const styles = StyleSheet.create({
   reasonDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
   reasonWord: { flex: 1, color: INK, fontWeight: '600' },
   reasonWeight: { color: MUTED, fontVariant: ['tabular-nums'] },
+
+  shareButton: {
+    marginTop: 16, paddingVertical: 10, borderRadius: 10,
+    backgroundColor: '#EEF2F8', alignItems: 'center',
+  },
+  shareButtonText: { color: INDIGO, fontWeight: '700' },
 
   feedbackBox: {
     marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: BORDER, alignItems: 'center',
