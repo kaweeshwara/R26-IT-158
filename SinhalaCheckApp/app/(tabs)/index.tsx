@@ -1,10 +1,26 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SPACE_URL = 'https://wishmitharuwanpathirana-sinhalacheck-api.hf.space';
 const HISTORY_KEY = 'sinhalacheck_history';
 const SHOW_LIME = true;
+
+// ---- Palette ----
+const INK = '#1B2340';
+const INDIGO = '#2A3B8F';
+const INDIGO_DARK = '#1E2C6E';
+const PAPER = '#F7F5F0';
+const CARD = '#FFFFFF';
+const BORDER = '#E4E1D8';
+const MUTED = '#8B8878';
+const GOLD = '#C9A227';
+const EMERALD = '#1F7A5C';
+const EMERALD_BG = '#E7F3EE';
+const AMBER = '#A6720B';
+const AMBER_BG = '#FBF1DD';
+const BRICK = '#B23A3A';
+const BRICK_BG = '#FBEBEB';
 
 const fetchWithTimeout = async (url: string, options: any = {}, timeout = 90000) => {
   const controller = new AbortController();
@@ -51,6 +67,13 @@ const isValidUrl = (str: string): boolean => {
   } catch {
     return false;
   }
+};
+
+// ---- Verdict styling lookup ----
+const verdictStyle = (label: string) => {
+  if (label === 'CREDIBLE') return { fg: EMERALD, bg: EMERALD_BG, ring: EMERALD };
+  if (label === 'UNCERTAIN') return { fg: AMBER, bg: AMBER_BG, ring: AMBER };
+  return { fg: BRICK, bg: BRICK_BG, ring: BRICK };
 };
 
 export default function HomeScreen() {
@@ -101,7 +124,7 @@ export default function HomeScreen() {
       let textToAnalyze = text.trim();
 
       if (hasUrl) {
-        setLoadingStage('Fetching article from URL...');
+        setLoadingStage('Fetching article from URL…');
         const pageRes = await fetchWithTimeout(urlInput.trim(), {}, 20000);
         if (!pageRes.ok) {
           setError('Could not fetch that URL. Please check the link and try again.');
@@ -118,7 +141,7 @@ export default function HomeScreen() {
         }
       }
 
-      setLoadingStage('Analyzing credibility...');
+      setLoadingStage('Analyzing credibility…');
 
       const submitRes = await fetchWithTimeout(`${SPACE_URL}/gradio_api/call/predict`, {
         method: 'POST',
@@ -164,86 +187,128 @@ export default function HomeScreen() {
   };
 
   const yearsOld = calculateYearsOld(publishDate);
+  const vStyle = result ? verdictStyle(result.label) : null;
+  const scorePct = result ? Math.round(result.final_score * 100) : 0;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>SinhalaCheck</Text>
-      <Text style={styles.subtitle}>Sinhala Fake News Detector</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Paste Sinhala news text here..."
-        placeholderTextColor="#999"
-        multiline
-        numberOfLines={6}
-        value={text}
-        onChangeText={setText}
-      />
-
-      <Text style={styles.orText}>— OR —</Text>
-
-      <TextInput
-        style={styles.dateInput}
-        placeholder="Paste article URL (https://...)"
-        placeholderTextColor="#999"
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="url"
-        value={urlInput}
-        onChangeText={setUrlInput}
-      />
-
-      <TextInput
-        style={styles.dateInput}
-        placeholder="Publish date (optional, e.g. 2020-04-01)"
-        placeholderTextColor="#999"
-        value={publishDate}
-        onChangeText={setPublishDate}
-      />
-
-      <View style={styles.button}>
-        <Button
-          title={loading ? 'Checking...' : 'Check Credibility'}
-          onPress={checkText}
-          disabled={loading}
-          color="#1F3864"
-        />
+      {/* ---- Header with seal mark ---- */}
+      <View style={styles.header}>
+        <View style={styles.sealMark}>
+          <View style={styles.sealCheck} />
+        </View>
+        <Text style={styles.title}>SinhalaCheck</Text>
+        <Text style={styles.subtitle}>SINHALA MISINFORMATION VERIFIER</Text>
       </View>
 
-      {loading && <ActivityIndicator size="large" color="#1F3864" style={{ marginTop: 20 }} />}
-      {loading && <Text style={styles.loadingText}>{loadingStage || 'This can take 15-30 seconds...'}</Text>}
+      {/* ---- Input card ---- */}
+      <View style={styles.card}>
+        <Text style={styles.label}>NEWS TEXT</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Paste Sinhala news text here…"
+          placeholderTextColor="#B7B4A6"
+          multiline
+          numberOfLines={6}
+          value={text}
+          onChangeText={setText}
+        />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>OR PASTE A LINK</Text>
+          <View style={styles.dividerLine} />
+        </View>
 
-      {result && (
-        <View style={styles.resultBox}>
+        <TextInput
+          style={styles.inputSmall}
+          placeholder="https://example.com/article"
+          placeholderTextColor="#B7B4A6"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          value={urlInput}
+          onChangeText={setUrlInput}
+        />
+
+        <Text style={[styles.label, { marginTop: 14 }]}>PUBLISH DATE <Text style={styles.labelOptional}>(optional)</Text></Text>
+        <TextInput
+          style={styles.inputSmall}
+          placeholder="e.g. 2020-04-01"
+          placeholderTextColor="#B7B4A6"
+          value={publishDate}
+          onChangeText={setPublishDate}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={checkText}
+          disabled={loading}
+          activeOpacity={0.85}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.buttonText}>CHECK CREDIBILITY</Text>
+          )}
+        </TouchableOpacity>
+
+        {loading && <Text style={styles.loadingText}>{loadingStage || 'This can take 15–30 seconds…'}</Text>}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+      </View>
+
+      {/* ---- Result "certificate" card ---- */}
+      {result && vStyle && (
+        <View style={styles.resultCard}>
+          <View style={styles.resultTopRow}>
+            <Text style={styles.resultEyebrow}>VERDICT</Text>
+            <View style={[styles.scoreBadge, { borderColor: vStyle.ring }]}>
+              <Text style={[styles.scoreBadgeText, { color: vStyle.fg }]}>{scorePct}</Text>
+            </View>
+          </View>
+
+          <Text style={[styles.verdict, { color: vStyle.fg }]}>{result.label}</Text>
+          <View style={[styles.verdictPill, { backgroundColor: vStyle.bg }]}>
+            <Text style={[styles.verdictPillText, { color: vStyle.fg }]}>Fusion score {result.final_score}</Text>
+          </View>
+
           {result._analyzedText && (
-            <View style={styles.previewBox}>
-              <Text style={styles.previewLabel}>Text analyzed:</Text>
-              <Text style={styles.previewText} numberOfLines={4}>{result._analyzedText}</Text>
+            <View style={styles.quoteBox}>
+              <Text style={styles.quoteMark}>“</Text>
+              <Text style={styles.quoteText} numberOfLines={4}>{result._analyzedText}</Text>
             </View>
           )}
 
-          <Text style={styles.verdict}>{result.label}</Text>
-          <Text style={styles.score}>Score: {result.final_score}</Text>
-
           {yearsOld !== null && yearsOld > 1 && (
-            <View style={styles.warningBox}>
+            <View style={styles.warningBanner}>
               <Text style={styles.warningText}>
-                🕒 {yearsOld} years old — originally published {publishDate}
+                ⏱ {yearsOld} years old — originally published {publishDate}
               </Text>
             </View>
           )}
 
           {SHOW_LIME && result.lime_explanations && (
-            <>
-              <Text style={styles.sectionTitle}>Why?</Text>
+            <View style={styles.limeSection}>
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>WHY THIS VERDICT</Text>
+                <View style={styles.dividerLine} />
+              </View>
               {result.lime_explanations.map((item: any, index: number) => (
-                <Text key={index} style={styles.reason}>
-                  • {item.word} ({item.weight > 0 ? '+' : ''}{item.weight})
-                </Text>
+                <View key={index} style={styles.reasonRow}>
+                  <View
+                    style={[
+                      styles.reasonDot,
+                      { backgroundColor: item.weight > 0 ? BRICK : EMERALD },
+                    ]}
+                  />
+                  <Text style={styles.reasonWord}>{item.word}</Text>
+                  <Text style={styles.reasonWeight}>
+                    {item.weight > 0 ? '+' : ''}{item.weight}
+                  </Text>
+                </View>
               ))}
-            </>
+            </View>
           )}
         </View>
       )}
@@ -252,24 +317,88 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 20, paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#1F3864', textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 12, fontSize: 16, textAlignVertical: 'top', minHeight: 120 },
-  orText: { textAlign: 'center', color: '#999', marginVertical: 8, fontSize: 12 },
-  dateInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 10, fontSize: 14, marginTop: 10 },
-  button: { marginTop: 16, borderRadius: 10, overflow: 'hidden' },
-  loadingText: { textAlign: 'center', color: '#666', marginTop: 8, fontSize: 12 },
-  error: { color: 'red', marginTop: 12, textAlign: 'center' },
-  resultBox: { marginTop: 24, padding: 16, backgroundColor: '#f5f5f5', borderRadius: 12 },
-  previewBox: { backgroundColor: '#EEF2F8', padding: 10, borderRadius: 8, marginBottom: 12 },
-  previewLabel: { fontSize: 11, fontWeight: '600', color: '#666', marginBottom: 4 },
-  previewText: { fontSize: 12, color: '#333', fontStyle: 'italic' },
-  verdict: { fontSize: 22, fontWeight: 'bold', color: '#1F3864', textAlign: 'center' },
-  score: { fontSize: 16, color: '#333', textAlign: 'center', marginBottom: 12 },
-  warningBox: { marginTop: 10, padding: 10, borderRadius: 8, backgroundColor: '#FDF3E7', borderWidth: 1, borderColor: '#F0C878' },
-  warningText: { color: '#8A5A00', fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  sectionTitle: { fontSize: 16, fontWeight: '600', marginTop: 10, marginBottom: 6 },
-  reason: { fontSize: 14, color: '#444', marginBottom: 4 },
+  container: { flex: 1, backgroundColor: PAPER },
+  content: { padding: 20, paddingTop: 56, paddingBottom: 60 },
+
+  header: { alignItems: 'center', marginBottom: 28 },
+  sealMark: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: INDIGO, alignItems: 'center', justifyContent: 'center',
+    marginBottom: 12, borderWidth: 2, borderColor: GOLD,
+  },
+  sealCheck: {
+    width: 18, height: 10,
+    borderLeftWidth: 3, borderBottomWidth: 3, borderColor: '#fff',
+    transform: [{ rotate: '-45deg' }], marginTop: -2,
+  },
+  title: { fontSize: 26, fontWeight: '800', color: INK, letterSpacing: 0.2 },
+  subtitle: { fontSize: 11, fontWeight: '600', color: MUTED, letterSpacing: 1.4, marginTop: 4 },
+
+  card: {
+    backgroundColor: CARD, borderRadius: 18, padding: 18,
+    borderWidth: 1, borderColor: BORDER,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+  label: { fontSize: 11, fontWeight: '700', color: MUTED, letterSpacing: 1, marginBottom: 8 },
+  labelOptional: { fontWeight: '400', color: '#C4C1B4', letterSpacing: 0 },
+  input: {
+    borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 12,
+    fontSize: 15, color: INK, textAlignVertical: 'top', minHeight: 120, backgroundColor: '#FCFBF9',
+  },
+  inputSmall: {
+    borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 11,
+    fontSize: 14, color: INK, backgroundColor: '#FCFBF9',
+  },
+
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: BORDER },
+  dividerText: { fontSize: 10, fontWeight: '700', color: MUTED, letterSpacing: 1, marginHorizontal: 10 },
+
+  button: {
+    backgroundColor: INDIGO, borderRadius: 14, paddingVertical: 15,
+    alignItems: 'center', marginTop: 18,
+    shadowColor: INDIGO_DARK, shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  buttonDisabled: { backgroundColor: '#9AA3C8' },
+  buttonText: { color: '#fff', fontWeight: '700', fontSize: 13, letterSpacing: 1 },
+
+  loadingText: { textAlign: 'center', color: MUTED, marginTop: 10, fontSize: 12 },
+  error: { color: BRICK, marginTop: 12, textAlign: 'center', fontSize: 13 },
+
+  resultCard: {
+    backgroundColor: CARD, borderRadius: 18, padding: 20, marginTop: 20,
+    borderWidth: 1.5, borderColor: BORDER, borderStyle: 'dashed',
+  },
+  resultTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  resultEyebrow: { fontSize: 11, fontWeight: '700', color: MUTED, letterSpacing: 1.4 },
+  scoreBadge: {
+    width: 44, height: 44, borderRadius: 22, borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff',
+  },
+  scoreBadgeText: { fontWeight: '800', fontSize: 14 },
+
+  verdict: { fontSize: 28, fontWeight: '800', marginTop: 10, letterSpacing: 0.3 },
+  verdictPill: {
+    alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, marginTop: 8,
+  },
+  verdictPillText: { fontSize: 12, fontWeight: '700' },
+
+  quoteBox: { marginTop: 18, paddingLeft: 14, borderLeftWidth: 3, borderLeftColor: GOLD },
+  quoteMark: { fontSize: 28, color: GOLD, lineHeight: 20, fontWeight: '800' },
+  quoteText: { fontSize: 13, color: '#5B5847', fontStyle: 'italic', lineHeight: 19, marginTop: -6 },
+
+  warningBanner: {
+    marginTop: 16, padding: 12, borderRadius: 10,
+    backgroundColor: AMBER_BG, borderWidth: 1, borderColor: '#EBD9A8',
+  },
+  warningText: { color: AMBER, fontSize: 12.5, fontWeight: '700', textAlign: 'center' },
+
+  limeSection: { marginTop: 4 },
+  reasonRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
+  reasonDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
+  reasonWord: { flex: 1, fontSize: 14, color: INK, fontWeight: '600' },
+  reasonWeight: { fontSize: 13, color: MUTED, fontVariant: ['tabular-nums'] },
 });
