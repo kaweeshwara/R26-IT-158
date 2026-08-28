@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
 
 const SPACE_URL = 'https://wishmitharuwanpathirana-sinhalacheck-api.hf.space';
 const HISTORY_KEY = 'sinhalacheck_history';
-const SHOW_LIME = true;
+const SETTINGS_KEY = 'sinhalacheck_settings';
 
 const INK = '#1B2340';
 const INDIGO = '#2A3B8F';
@@ -74,7 +75,6 @@ const verdictStyle = (label: string) => {
   return { fg: BRICK, bg: BRICK_BG, ring: BRICK };
 };
 
-// ---- Plain-language explanation for each verdict, shown to the user ----
 const verdictDescription = (label: string) => {
   if (label === 'CREDIBLE') {
     return 'This content appears trustworthy based on our analysis. Always verify important information from official sources before sharing.';
@@ -93,6 +93,31 @@ export default function HomeScreen() {
   const [loadingStage, setLoadingStage] = useState('');
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
+
+  // ---- Settings (loaded from Settings tab) ----
+  const [showLime, setShowLime] = useState(true);
+  const [fontScale, setFontScale] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadSettings = async () => {
+        try {
+          const stored = await AsyncStorage.getItem(SETTINGS_KEY);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setShowLime(parsed.showLime ?? true);
+            setFontScale(parsed.fontScale ?? false);
+          }
+        } catch (e) {
+          console.log('Failed to load settings', e);
+        }
+      };
+      loadSettings();
+    }, [])
+  );
+
+  // Font-size helper: scales up when "Large Text" is enabled
+  const fs = (base: number) => (fontScale ? Math.round(base * 1.3) : base);
 
   const saveToHistory = async (checkedText: string, response: any) => {
     try {
@@ -205,14 +230,14 @@ export default function HomeScreen() {
         <View style={styles.sealMark}>
           <View style={styles.sealCheck} />
         </View>
-        <Text style={styles.title}>SinhalaCheck</Text>
-        <Text style={styles.subtitle}>SINHALA MISINFORMATION VERIFIER</Text>
+        <Text style={[styles.title, { fontSize: fs(26) }]}>SinhalaCheck</Text>
+        <Text style={[styles.subtitle, { fontSize: fs(11) }]}>SINHALA MISINFORMATION VERIFIER</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>NEWS TEXT</Text>
+        <Text style={[styles.label, { fontSize: fs(11) }]}>NEWS TEXT</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { fontSize: fs(15) }]}
           placeholder="Paste Sinhala news text here…"
           placeholderTextColor="#B7B4A6"
           multiline
@@ -223,12 +248,12 @@ export default function HomeScreen() {
 
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>OR PASTE A LINK</Text>
+          <Text style={[styles.dividerText, { fontSize: fs(10) }]}>OR PASTE A LINK</Text>
           <View style={styles.dividerLine} />
         </View>
 
         <TextInput
-          style={styles.inputSmall}
+          style={[styles.inputSmall, { fontSize: fs(14) }]}
           placeholder="https://example.com/article"
           placeholderTextColor="#B7B4A6"
           autoCapitalize="none"
@@ -238,9 +263,11 @@ export default function HomeScreen() {
           onChangeText={setUrlInput}
         />
 
-        <Text style={[styles.label, { marginTop: 14 }]}>PUBLISH DATE <Text style={styles.labelOptional}>(optional)</Text></Text>
+        <Text style={[styles.label, { fontSize: fs(11), marginTop: 14 }]}>
+          PUBLISH DATE <Text style={styles.labelOptional}>(optional)</Text>
+        </Text>
         <TextInput
-          style={styles.inputSmall}
+          style={[styles.inputSmall, { fontSize: fs(14) }]}
           placeholder="e.g. 2020-04-01"
           placeholderTextColor="#B7B4A6"
           value={publishDate}
@@ -256,50 +283,58 @@ export default function HomeScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.buttonText}>CHECK CREDIBILITY</Text>
+            <Text style={[styles.buttonText, { fontSize: fs(13) }]}>CHECK CREDIBILITY</Text>
           )}
         </TouchableOpacity>
 
-        {loading && <Text style={styles.loadingText}>{loadingStage || 'This can take 15–30 seconds…'}</Text>}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {loading && (
+          <Text style={[styles.loadingText, { fontSize: fs(12) }]}>
+            {loadingStage || 'This can take 15–30 seconds…'}
+          </Text>
+        )}
+        {error ? <Text style={[styles.error, { fontSize: fs(13) }]}>{error}</Text> : null}
       </View>
 
       {result && vStyle && (
         <View style={styles.resultCard}>
           <View style={styles.resultTopRow}>
-            <Text style={styles.resultEyebrow}>VERDICT</Text>
+            <Text style={[styles.resultEyebrow, { fontSize: fs(11) }]}>VERDICT</Text>
             <View style={[styles.scoreBadge, { borderColor: vStyle.ring }]}>
-              <Text style={[styles.scoreBadgeText, { color: vStyle.fg }]}>{scorePct}</Text>
+              <Text style={[styles.scoreBadgeText, { color: vStyle.fg, fontSize: fs(14) }]}>{scorePct}</Text>
             </View>
           </View>
 
-          <Text style={[styles.verdict, { color: vStyle.fg }]}>{result.label}</Text>
+          <Text style={[styles.verdict, { color: vStyle.fg, fontSize: fs(28) }]}>{result.label}</Text>
           <View style={[styles.verdictPill, { backgroundColor: vStyle.bg }]}>
-            <Text style={[styles.verdictPillText, { color: vStyle.fg }]}>Fusion score {result.final_score}</Text>
+            <Text style={[styles.verdictPillText, { color: vStyle.fg, fontSize: fs(12) }]}>
+              Fusion score {result.final_score}
+            </Text>
           </View>
 
-          <Text style={styles.verdictDescription}>{verdictDescription(result.label)}</Text>
+          <Text style={[styles.verdictDescription, { fontSize: fs(13) }]}>{verdictDescription(result.label)}</Text>
 
           {result._analyzedText && (
             <View style={styles.quoteBox}>
               <Text style={styles.quoteMark}>“</Text>
-              <Text style={styles.quoteText} numberOfLines={4}>{result._analyzedText}</Text>
+              <Text style={[styles.quoteText, { fontSize: fs(13) }]} numberOfLines={4}>
+                {result._analyzedText}
+              </Text>
             </View>
           )}
 
           {yearsOld !== null && yearsOld > 1 && (
             <View style={styles.warningBanner}>
-              <Text style={styles.warningText}>
+              <Text style={[styles.warningText, { fontSize: fs(12.5) }]}>
                 ⏱ {yearsOld} years old — originally published {publishDate}
               </Text>
             </View>
           )}
 
-          {SHOW_LIME && result.lime_explanations && (
+          {showLime && result.lime_explanations && (
             <View style={styles.limeSection}>
               <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>WHY THIS VERDICT</Text>
+                <Text style={[styles.dividerText, { fontSize: fs(10) }]}>WHY THIS VERDICT</Text>
                 <View style={styles.dividerLine} />
               </View>
               {result.lime_explanations.map((item: any, index: number) => (
@@ -310,8 +345,8 @@ export default function HomeScreen() {
                       { backgroundColor: item.weight > 0 ? BRICK : EMERALD },
                     ]}
                   />
-                  <Text style={styles.reasonWord}>{item.word}</Text>
-                  <Text style={styles.reasonWeight}>
+                  <Text style={[styles.reasonWord, { fontSize: fs(14) }]}>{item.word}</Text>
+                  <Text style={[styles.reasonWeight, { fontSize: fs(13) }]}>
                     {item.weight > 0 ? '+' : ''}{item.weight}
                   </Text>
                 </View>
@@ -339,8 +374,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3, borderBottomWidth: 3, borderColor: '#fff',
     transform: [{ rotate: '-45deg' }], marginTop: -2,
   },
-  title: { fontSize: 26, fontWeight: '800', color: INK, letterSpacing: 0.2 },
-  subtitle: { fontSize: 11, fontWeight: '600', color: MUTED, letterSpacing: 1.4, marginTop: 4 },
+  title: { fontWeight: '800', color: INK, letterSpacing: 0.2 },
+  subtitle: { fontWeight: '600', color: MUTED, letterSpacing: 1.4, marginTop: 4 },
 
   card: {
     backgroundColor: CARD, borderRadius: 18, padding: 18,
@@ -348,20 +383,20 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
     elevation: 1,
   },
-  label: { fontSize: 11, fontWeight: '700', color: MUTED, letterSpacing: 1, marginBottom: 8 },
+  label: { fontWeight: '700', color: MUTED, letterSpacing: 1, marginBottom: 8 },
   labelOptional: { fontWeight: '400', color: '#C4C1B4', letterSpacing: 0 },
   input: {
     borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 12,
-    fontSize: 15, color: INK, textAlignVertical: 'top', minHeight: 120, backgroundColor: '#FCFBF9',
+    color: INK, textAlignVertical: 'top', minHeight: 120, backgroundColor: '#FCFBF9',
   },
   inputSmall: {
     borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 11,
-    fontSize: 14, color: INK, backgroundColor: '#FCFBF9',
+    color: INK, backgroundColor: '#FCFBF9',
   },
 
   dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
   dividerLine: { flex: 1, height: 1, backgroundColor: BORDER },
-  dividerText: { fontSize: 10, fontWeight: '700', color: MUTED, letterSpacing: 1, marginHorizontal: 10 },
+  dividerText: { fontWeight: '700', color: MUTED, letterSpacing: 1, marginHorizontal: 10 },
 
   button: {
     backgroundColor: INDIGO, borderRadius: 14, paddingVertical: 15,
@@ -370,44 +405,44 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   buttonDisabled: { backgroundColor: '#9AA3C8' },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 13, letterSpacing: 1 },
+  buttonText: { color: '#fff', fontWeight: '700', letterSpacing: 1 },
 
-  loadingText: { textAlign: 'center', color: MUTED, marginTop: 10, fontSize: 12 },
-  error: { color: BRICK, marginTop: 12, textAlign: 'center', fontSize: 13 },
+  loadingText: { textAlign: 'center', color: MUTED, marginTop: 10 },
+  error: { color: BRICK, marginTop: 12, textAlign: 'center' },
 
   resultCard: {
     backgroundColor: CARD, borderRadius: 18, padding: 20, marginTop: 20,
     borderWidth: 1.5, borderColor: BORDER, borderStyle: 'dashed',
   },
   resultTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  resultEyebrow: { fontSize: 11, fontWeight: '700', color: MUTED, letterSpacing: 1.4 },
+  resultEyebrow: { fontWeight: '700', color: MUTED, letterSpacing: 1.4 },
   scoreBadge: {
     width: 44, height: 44, borderRadius: 22, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff',
   },
-  scoreBadgeText: { fontWeight: '800', fontSize: 14 },
+  scoreBadgeText: { fontWeight: '800' },
 
-  verdict: { fontSize: 28, fontWeight: '800', marginTop: 10, letterSpacing: 0.3 },
+  verdict: { fontWeight: '800', marginTop: 10, letterSpacing: 0.3 },
   verdictPill: {
     alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5,
     borderRadius: 20, marginTop: 8,
   },
-  verdictPillText: { fontSize: 12, fontWeight: '700' },
-  verdictDescription: { fontSize: 13, color: '#5B5847', marginTop: 10, lineHeight: 19 },
+  verdictPillText: { fontWeight: '700' },
+  verdictDescription: { color: '#5B5847', marginTop: 10, lineHeight: 19 },
 
   quoteBox: { marginTop: 18, paddingLeft: 14, borderLeftWidth: 3, borderLeftColor: GOLD },
   quoteMark: { fontSize: 28, color: GOLD, lineHeight: 20, fontWeight: '800' },
-  quoteText: { fontSize: 13, color: '#5B5847', fontStyle: 'italic', lineHeight: 19, marginTop: -6 },
+  quoteText: { color: '#5B5847', fontStyle: 'italic', lineHeight: 19, marginTop: -6 },
 
   warningBanner: {
     marginTop: 16, padding: 12, borderRadius: 10,
     backgroundColor: AMBER_BG, borderWidth: 1, borderColor: '#EBD9A8',
   },
-  warningText: { color: AMBER, fontSize: 12.5, fontWeight: '700', textAlign: 'center' },
+  warningText: { color: AMBER, fontWeight: '700', textAlign: 'center' },
 
   limeSection: { marginTop: 4 },
   reasonRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   reasonDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
-  reasonWord: { flex: 1, fontSize: 14, color: INK, fontWeight: '600' },
-  reasonWeight: { fontSize: 13, color: MUTED, fontVariant: ['tabular-nums'] },
+  reasonWord: { flex: 1, color: INK, fontWeight: '600' },
+  reasonWeight: { color: MUTED, fontVariant: ['tabular-nums'] },
 });
