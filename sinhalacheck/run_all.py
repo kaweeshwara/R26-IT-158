@@ -79,7 +79,7 @@ def main() -> int:
             return 1
         env = dict(os.environ, PYTHONUNBUFFERED="1")
         p = subprocess.Popen(
-            [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port)],
+            [sys.executable, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", str(port)],
             cwd=str(cwd), env=env,
         )
         procs.append((name, p))

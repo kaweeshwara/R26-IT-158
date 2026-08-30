@@ -18,7 +18,7 @@
          border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:24px;flex-wrap:wrap}
   h1{margin:0;font-size:22px;letter-spacing:-.01em}
   .sub{color:var(--muted);font-size:13px;margin-top:4px}
-  .status{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+  .status{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
   .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#c9ced6;margin-right:5px}
   .dot.up{background:var(--ok)} .dot.down{background:var(--bad)}
 
@@ -40,6 +40,9 @@
   .samples button{width:auto;margin:0;padding:5px 10px;font-size:12px;font-weight:400;
                   background:#eef1f4;color:var(--ink);border:1px solid var(--line)}
   .samples button:hover{background:#e2e7ec}
+
+  .toggle-row{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .toggle-row input{width:auto}
 
   .verdict{text-align:center;padding:20px 14px;border-radius:9px;margin-bottom:16px;border:1px solid}
   .verdict .score{font-size:38px;font-weight:650;letter-spacing:-.02em;line-height:1}
@@ -66,6 +69,19 @@
   details{margin-top:14px} summary{cursor:pointer;font-size:12px;color:var(--muted)}
   pre{background:#f3f5f7;border:1px solid var(--line);border-radius:7px;padding:11px;
       overflow:auto;font-size:11.5px;max-height:300px;margin-top:9px}
+
+  /* ---- Module 4 (Wishmitha) additions: explanation box + LIME list ---- */
+  .why-box{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .why-box h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .why-box h3 .ai-tag{color:var(--accent);font-weight:400;text-transform:none;letter-spacing:0;font-size:11.5px}
+  .why-text{font-size:13.5px;line-height:1.6;color:var(--ink);background:#f7f8fa;
+            border:1px solid var(--line);border-radius:7px;padding:11px 13px}
+  ul.lime{list-style:none;margin:12px 0 0;padding:0}
+  ul.lime li{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:13.5px}
+  .lime-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .lime-dot.neg{background:var(--ok)} .lime-dot.pos{background:var(--bad)}
+  .lime-word{flex:1;font-weight:600}
+  .lime-weight{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12.5px}
 </style>
 </head>
 <body>
@@ -78,6 +94,7 @@
     <div class="status" id="status">
       <span><span class="dot" id="d1"></span>Module 1 &middot; content</span>
       <span><span class="dot" id="d2"></span>Module 2 &middot; source &amp; time</span>
+      <span><span class="dot" id="d4"></span>Module 4 &middot; explainability</span>
     </div>
   </header>
 
@@ -99,6 +116,16 @@
           <label for="cross">Corroborating sources — optional</label>
           <input id="cross" type="number" min="0" placeholder="e.g. 3">
         </div>
+      </div>
+
+      <label for="seen">Times seen/forwarded — optional</label>
+      <input id="seen" type="number" min="0" placeholder="e.g. 12">
+
+      <div class="toggle-row">
+        <input type="checkbox" id="explain" checked>
+        <label for="explain" style="margin:0;text-transform:none;font-size:12.5px">
+          Include Module 4 explanation (LIME + plain-language "why")
+        </label>
       </div>
 
       <button id="go">Analyse</button>
@@ -123,7 +150,7 @@ const $ = id => document.getElementById(id);
 const SAMPLES = {
   1: {text:"කොරෝනා වෛරසය මේ වන විට රටවල් 200කට අධික සංඛ්‍යාවකට පැතිර ගොස් තිබේ. එම රටවලින් සැලකිය යුතු සංඛ්‍යාවක් ජාත්‍යන්තර සෞඛ්‍ය මාර්ගෝපදේශ අනුගමනය කරමින් සිටී. සෞඛ්‍ය අමාත්‍යාංශය පවසන පරිදි නව රෝගීන් සංඛ්‍යාව පහත වැටී ඇත.",
       url:"https://www.adaderana.lk/news/100123/covid-update"},
-  2: {text:"හදිසි පණිවිඩයයි! බැංකුව හෙට සිට සියලු ගිණුම් අත්හිටුවනවා කියලා තහවුරු වෙලා තියෙනවා. මේක delete කරන්න කලින් share කරන්න! ඔවුන් ඔබට මේක දැනගන්න දෙන්නේ නැහැ.",
+  2: {text:"5G කුලුණු මගින් මිනිසුන්ගේ මොළය පාලනය කරන බව විද්‍යාඥයෙක් අද තහවුරු කළේය. මේ බව සියල්ලන්ටම දැනගත යුතුයි!",
       url:""}
 };
 
@@ -132,14 +159,15 @@ async function health(){
     const r = await fetch('/health'); const j = await r.json();
     $('d1').className = 'dot ' + (j.module1==='ok'?'up':'down');
     $('d2').className = 'dot ' + (j.module2==='ok'?'up':'down');
-  }catch(e){ $('d1').className='dot down'; $('d2').className='dot down'; }
+    $('d4').className = 'dot ' + (j.module4==='ok'?'up':'down');
+  }catch(e){ $('d1').className='dot down'; $('d2').className='dot down'; $('d4').className='dot down'; }
 }
 health(); setInterval(health, 15000);
 
 document.querySelectorAll('.samples button').forEach(b=>{
   b.onclick = () => {
     const k = b.dataset.s;
-    if(k==='clear'){ $('text').value=''; $('url').value=''; $('date').value=''; $('cross').value=''; return; }
+    if(k==='clear'){ $('text').value=''; $('url').value=''; $('date').value=''; $('cross').value=''; $('seen').value=''; return; }
     $('text').value = SAMPLES[k].text; $('url').value = SAMPLES[k].url;
   };
 });
@@ -187,6 +215,27 @@ function render(d){
     html += `<ul class="reasons">${d.reasons.map(r=>`<li>${r}</li>`).join('')}</ul>`;
   }
 
+  // ---- Module 4: plain-language "why" explanation (AI-narrated if available, else template) ----
+  const whyText = d.natural_explanation_ai || d.natural_explanation;
+  if(whyText){
+    const isAi = !!d.natural_explanation_ai;
+    html += `<div class="why-box">
+      <h3>Why? (Module 4 — Explainability)${isAi ? ' <span class="ai-tag">· AI-narrated</span>' : ''}</h3>
+      <div class="why-text">${whyText}</div>
+    </div>`;
+  }
+
+  // ---- Module 4: raw LIME word weights ----
+  if(d.module4_explanations && d.module4_explanations.length){
+    html += `<ul class="lime">${d.module4_explanations.map(e => {
+      const dotClass = e.weight > 0 ? 'pos' : 'neg';
+      const sign = e.weight > 0 ? '+' : '';
+      return `<li><span class="lime-dot ${dotClass}"></span>
+              <span class="lime-word">${e.word}</span>
+              <span class="lime-weight">${sign}${e.weight}</span></li>`;
+    }).join('')}</ul>`;
+  }
+
   const p = d.weights_provenance;
   html += `<div class="note">Weights: ${p.method}${p.n_samples?` · fitted on ${p.n_samples} documents`:''}.
      Module 1: LaBSE, cross-validated macro-F1 0.753 ± 0.013 (n=3,000).</div>`;
@@ -201,10 +250,11 @@ $('go').onclick = async () => {
   const text = $('text').value.trim();
   if(!text){ $('out').innerHTML = '<div class="err">Enter some text to analyse.</div>'; return; }
 
-  const body = { text };
+  const body = { text, explain: $('explain').checked };
   if($('url').value.trim()) body.url = $('url').value.trim();
   if($('date').value) body.published_date = new Date($('date').value).toISOString();
   if($('cross').value !== '') body.cross_count = parseInt($('cross').value, 10);
+  if($('seen').value !== '') body.seen_count = parseInt($('seen').value, 10);
 
   $('go').disabled = true; $('go').textContent = 'Analysing...';
   $('out').innerHTML = '<div class="empty">Running content model...</div>';
