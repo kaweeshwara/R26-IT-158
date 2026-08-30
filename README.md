@@ -21,7 +21,7 @@ Sri Lankan social media and news platforms.
 |------------|------|-----------|------|
 | IT22331304 | Kaweeshwara P.D.S. | NLP Content Credibility Analysis | Team Leader |
 | IT22370778 | Caledra S.T.H | Source Credibility and Temporal verification | Team Member |
-| TBD | Wishmitha | TBD | Team Member |
+| IT22259752 | Ruwanpathirana R.W.P.M| Fusion Engine, XAI Explanation  | Team Member |
 
 ---
 
