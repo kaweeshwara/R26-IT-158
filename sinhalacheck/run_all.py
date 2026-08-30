@@ -1,4 +1,4 @@
-"""Start all three SinhalaCheck services and keep them running.
+"""Start all four SinhalaCheck services and keep them running.
 
     python run_all.py
 
@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parent
 SERVICES = [
     ("module2", ROOT / "services" / "module2", 8002),   # fast: sklearn model
     ("module1", ROOT / "services" / "module1", 8001),   # slow: transformer
+    ("module4", ROOT / "services" / "module4", 8003),   # XAI / explainability
     ("fusion",  ROOT / "services" / "fusion",  8000),   # gateway + UI
 ]
 
@@ -91,6 +92,7 @@ def main() -> int:
     print(f"\nAll services up. Opening {url}")
     print("  module 1 (content)          http://127.0.0.1:8001/docs")
     print("  module 2 (source/temporal)  http://127.0.0.1:8002/docs")
+    print("  module 4 (XAI/explain)      http://127.0.0.1:8003/docs")
     print("  fusion + UI                 http://127.0.0.1:8000")
     print("\nCtrl-C to stop.\n")
     try:

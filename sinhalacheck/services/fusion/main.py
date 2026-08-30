@@ -1,7 +1,13 @@
 """SinhalaCheck — Fusion service.
 
-Calls Module 1 (content credibility) and Module 2 (source credibility + temporal
-verification) over HTTP, combines their scores, and serves the demo UI.
+Calls Module 1 (content credibility), Module 2 (source credibility + temporal
+verification), and Module 4 (XAI explainability) over HTTP, combines their
+outputs, and serves the demo UI.
+
+Modified by Wishmitha (IT22259752) — Module 4: Fusion, XAI explanation &
+user application — to integrate real LIME-based explanations into the
+fusion response, so every verdict comes with both a score AND a
+human-readable "why" derived from the actual model's decision boundary.
 
 Two design decisions are worth stating explicitly, because both were review findings:
 
@@ -19,7 +25,8 @@ Two design decisions are worth stating explicitly, because both were review find
 **Graceful degradation.** The primary user pastes a WhatsApp forward, which has no URL and
 no publication date — so Module 2 cannot contribute. Rather than failing or inventing a
 neutral 0.5, fusion drops the unavailable signals and renormalises the remaining weights,
-then reports which signals were actually used.
+then reports which signals were actually used. Module 4 (explainability) is likewise
+optional — if it is unreachable, fusion still returns a verdict, just without LIME reasons.
 
 Run:
     uvicorn main:app --port 8000
@@ -41,6 +48,7 @@ from pydantic import BaseModel, Field
 
 MODULE1_URL = os.environ.get("MODULE1_URL", "http://127.0.0.1:8001")
 MODULE2_URL = os.environ.get("MODULE2_URL", "http://127.0.0.1:8002")
+MODULE4_URL = os.environ.get("MODULE4_URL", "http://127.0.0.1:8003")
 WEIGHTS_PATH = Path(__file__).with_name("weights.json")
 FRONTEND = Path(__file__).resolve().parents[2] / "frontend" / "index.html"
 
@@ -60,6 +68,7 @@ class AnalyzeRequest(BaseModel):
     published_date: Optional[datetime] = None
     cross_count: Optional[int] = Field(None, ge=0)
     seen_count: Optional[int] = Field(None, ge=0)
+    explain: bool = Field(True, description="If true, also fetch a LIME explanation from Module 4.")
 
 
 class ModuleStatus(BaseModel):
@@ -114,7 +123,7 @@ def ui():
 async def health():
     out = {"fusion": "ok", "weights": load_weights().get("method")}
     async with httpx.AsyncClient(timeout=5) as client:
-        for name, url in (("module1", MODULE1_URL), ("module2", MODULE2_URL)):
+        for name, url in (("module1", MODULE1_URL), ("module2", MODULE2_URL), ("module4", MODULE4_URL)):
             try:
                 r = await client.get(f"{url}/")
                 out[name] = "ok" if r.status_code == 200 else f"http {r.status_code}"
@@ -130,6 +139,7 @@ async def analyze(req: AnalyzeRequest):
     signals: dict = {"content": None, "source": None, "temporal": None}
     m1_data: dict = {}
     m2_data: dict = {}
+    m4_data: dict = {}
 
     async with httpx.AsyncClient(timeout=120) as client:
         # ---- Module 1: content. Required - without it there is no analysis.
@@ -163,6 +173,19 @@ async def analyze(req: AnalyzeRequest):
                 modules["module2"] = ModuleStatus(available=True).model_dump()
             except Exception as e:
                 modules["module2"] = ModuleStatus(
+                    available=False, reason=f"{type(e).__name__}: {e}").model_dump()
+
+        # ---- Module 4: XAI / LIME explanation. Optional - can be skipped for speed.
+        if not req.explain:
+            modules["module4"] = ModuleStatus(available=False, reason="explain=false").model_dump()
+        else:
+            try:
+                r = await client.post(f"{MODULE4_URL}/explain", json={"text": req.text, "num_features": 5, "num_samples": 80})
+                r.raise_for_status()
+                m4_data = r.json()
+                modules["module4"] = ModuleStatus(available=True).model_dump()
+            except Exception as e:
+                modules["module4"] = ModuleStatus(
                     available=False, reason=f"{type(e).__name__}: {e}").model_dump()
 
     score, detail = fuse(signals, cfg)
@@ -201,4 +224,5 @@ async def analyze(req: AnalyzeRequest):
         "reasons": reasons,
         "module1": m1_data,
         "module2": m2_data or None,
+        "module4_explanations": m4_data.get("explanations") if m4_data else None,
     }
