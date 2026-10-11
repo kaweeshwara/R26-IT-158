@@ -1,0 +1,43 @@
+{
+  "_meta": {
+    "description": "Curated knowledge base of Sri Lankan (and SL-relevant) news sources used for rule-based credibility scoring.",
+    "feature_scale": "0-1 (registration is binary 0/1)",
+    "last_updated": "2026-05-06"
+  },
+  "trusted": {
+    "adaderana.lk":      { "registration": 1, "domain_age": 0.95, "history": 0.90, "editorial": 0.85, "cross": 0.90 },
+    "news.lk":           { "registration": 1, "domain_age": 1.00, "history": 0.92, "editorial": 0.90, "cross": 0.95 },
+    "dailymirror.lk":    { "registration": 1, "domain_age": 0.95, "history": 0.88, "editorial": 0.90, "cross": 0.85 },
+    "hirunews.lk":       { "registration": 1, "domain_age": 0.90, "history": 0.85, "editorial": 0.80, "cross": 0.85 },
+    "newsfirst.lk":      { "registration": 1, "domain_age": 0.90, "history": 0.85, "editorial": 0.85, "cross": 0.85 },
+    "lankadeepa.lk":     { "registration": 1, "domain_age": 0.95, "history": 0.85, "editorial": 0.80, "cross": 0.80 },
+    "sundaytimes.lk":    { "registration": 1, "domain_age": 0.95, "history": 0.85, "editorial": 0.85, "cross": 0.85 },
+    "island.lk":         { "registration": 1, "domain_age": 0.90, "history": 0.80, "editorial": 0.80, "cross": 0.75 },
+    "ft.lk":             { "registration": 1, "domain_age": 0.90, "history": 0.85, "editorial": 0.85, "cross": 0.80 },
+    "themorning.lk":     { "registration": 1, "domain_age": 0.70, "history": 0.78, "editorial": 0.80, "cross": 0.75 },
+    "economynext.com":   { "registration": 1, "domain_age": 0.75, "history": 0.85, "editorial": 0.85, "cross": 0.80 },
+    "groundviews.org":   { "registration": 1, "domain_age": 0.90, "history": 0.85, "editorial": 0.90, "cross": 0.75 },
+    "dailynews.lk":      { "registration": 1, "domain_age": 0.95, "history": 0.80, "editorial": 0.80, "cross": 0.80 },
+    "silumina.lk":       { "registration": 1, "domain_age": 0.90, "history": 0.78, "editorial": 0.78, "cross": 0.75 },
+    "sundayobserver.lk": { "registration": 1, "domain_age": 0.90, "history": 0.78, "editorial": 0.80, "cross": 0.75 },
+    "bbc.com":           { "registration": 1, "domain_age": 1.00, "history": 0.92, "editorial": 0.95, "cross": 0.95 },
+    "reuters.com":       { "registration": 1, "domain_age": 1.00, "history": 0.95, "editorial": 0.95, "cross": 0.95 },
+    "aljazeera.com":     { "registration": 1, "domain_age": 0.95, "history": 0.88, "editorial": 0.88, "cross": 0.90 }
+  },
+  "moderate": {
+    "colombogazette.com": { "registration": 1, "domain_age": 0.75, "history": 0.70, "editorial": 0.70, "cross": 0.65 },
+    "ceylontoday.lk":     { "registration": 1, "domain_age": 0.65, "history": 0.70, "editorial": 0.70, "cross": 0.65 },
+    "lankabusinessonline.com": { "registration": 1, "domain_age": 0.80, "history": 0.72, "editorial": 0.72, "cross": 0.70 },
+    "lankaweb.com":       { "registration": 1, "domain_age": 0.95, "history": 0.55, "editorial": 0.55, "cross": 0.50 },
+    "lankacnews.com":     { "registration": 1, "domain_age": 0.70, "history": 0.55, "editorial": 0.55, "cross": 0.55 },
+    "gossiplankanews.com":{ "registration": 1, "domain_age": 0.70, "history": 0.45, "editorial": 0.40, "cross": 0.45 }
+  },
+  "blacklist": [
+    "fakelanka-news.com",
+    "lanka-satire.example",
+    "srilanka-rumor.example"
+  ],
+  "sri_lankan_extras": [
+    "lk"
+  ]
+}

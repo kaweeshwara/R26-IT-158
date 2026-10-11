@@ -82,3 +82,15 @@ corpus for credibility classification.
 
 
 LIME Experiments Notebook: https://colab.research.google.com/drive/16CS93JWN3yz-qY4yv7uSBUVuSd0bhZ4Y#scrollTo=t8mTSZ2pJT35
+
+---
+
+## Integrated application and Module 4 materials
+
+The integrated local application, service setup, and API details are documented in
+[`sinhalacheck/README.md`](sinhalacheck/README.md). Wishmitha's Module 4 mobile, research,
+deployment, and thesis materials are in [`Wishmitha/Module4/`](Wishmitha/Module4/).
+
+Research data generated for pipeline testing is synthetic and is not evidence from a
+participant study. The mobile application and cloud deployment have not been fully validated;
+see the component READMEs for current status and local instructions.
