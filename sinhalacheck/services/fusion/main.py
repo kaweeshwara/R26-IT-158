@@ -34,6 +34,7 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
+from fetcher import fetch_article, looks_like_url
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -55,8 +56,8 @@ def load_weights() -> dict:
 
 # --------------------------------------------------------------------------- schemas
 class AnalyzeRequest(BaseModel):
-    text: str = Field(..., min_length=1, description="Article text or forwarded message.")
-    url: Optional[str] = Field(None, description="Source URL, if the content came from one.")
+    text: Optional[str] = Field(None, description="Article text or forwarded message.")
+    url: Optional[str] = Field(None, description="Source URL. The article is fetched from it.")
     published_date: Optional[datetime] = None
     cross_count: Optional[int] = Field(None, ge=0)
     seen_count: Optional[int] = Field(None, ge=0)
@@ -126,6 +127,33 @@ async def health():
 @app.post("/analyze")
 async def analyze(req: AnalyzeRequest):
     cfg = load_weights()
+
+    # ---- Resolve the input to article text.
+    # A user pastes a link, not a paragraph, so a URL is a first-class input: fetch it, and
+    # take the publication date from the page rather than asking the user to supply one.
+    text = (req.text or "").strip()
+    url = (req.url or "").strip()
+    published = req.published_date
+    fetch_info: Optional[dict] = None
+
+    if not url and looks_like_url(text):
+        url, text = text, ""        # a URL was pasted into the text box
+
+    if url and not text:
+        fetch_info = await fetch_article(url)
+        if fetch_info["ok"]:
+            text = fetch_info["text"]
+            if published is None and fetch_info["published_date"]:
+                published = datetime.fromisoformat(fetch_info["published_date"])
+        else:
+            raise HTTPException(
+                422,
+                f"Could not read the article: {fetch_info['reason']}. "
+                f"Paste the article text into the text box instead.")
+
+    if not text:
+        raise HTTPException(400, "Provide article text, a URL, or both.")
+
     modules: dict = {}
     signals: dict = {"content": None, "source": None, "temporal": None}
     m1_data: dict = {}
@@ -134,7 +162,7 @@ async def analyze(req: AnalyzeRequest):
     async with httpx.AsyncClient(timeout=120) as client:
         # ---- Module 1: content. Required - without it there is no analysis.
         try:
-            r = await client.post(f"{MODULE1_URL}/predict", json={"text": req.text})
+            r = await client.post(f"{MODULE1_URL}/predict", json={"text": text})
             r.raise_for_status()
             m1_data = r.json()
             signals["content"] = m1_data["content_score"]
@@ -143,14 +171,14 @@ async def analyze(req: AnalyzeRequest):
             raise HTTPException(502, f"Module 1 (content) unavailable: {type(e).__name__}: {e}")
 
         # ---- Module 2: source + temporal. Optional - needs a URL.
-        if not req.url:
+        if not url:
             reason = "no URL supplied; source and recency cannot be assessed from text alone"
             modules["module2"] = ModuleStatus(available=False, reason=reason).model_dump()
         else:
             try:
-                payload = {"url": req.url, "text": req.text}
-                if req.published_date:
-                    payload["published_date"] = req.published_date.isoformat()
+                payload = {"url": url, "text": text}
+                if published:
+                    payload["published_date"] = published.isoformat()
                 if req.cross_count is not None:
                     payload["cross_count"] = req.cross_count
                 if req.seen_count is not None:
@@ -201,4 +229,5 @@ async def analyze(req: AnalyzeRequest):
         "reasons": reasons,
         "module1": m1_data,
         "module2": m2_data or None,
+        "source_fetch": fetch_info,
     }

@@ -13,19 +13,19 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
        font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Sinhala",sans-serif}
-  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
   header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
-         border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:24px;flex-wrap:wrap}
+         border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px;flex-wrap:wrap}
   h1{margin:0;font-size:22px;letter-spacing:-.01em}
   .sub{color:var(--muted);font-size:13px;margin-top:4px}
   .status{display:flex;gap:14px;font-size:12px;color:var(--muted)}
   .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#c9ced6;margin-right:5px}
   .dot.up{background:var(--ok)} .dot.down{background:var(--bad)}
 
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  @media(max-width:860px){.grid{grid-template-columns:1fr}}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
-  .panel h2{margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .panel h2{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .inputgrid{display:grid;grid-template-columns:1.4fr 1fr;gap:22px}
+  @media(max-width:860px){.inputgrid{grid-template-columns:1fr}}
 
   label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
   textarea,input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:7px;
@@ -44,28 +44,69 @@
   .verdict{text-align:center;padding:20px 14px;border-radius:9px;margin-bottom:16px;border:1px solid}
   .verdict .score{font-size:38px;font-weight:650;letter-spacing:-.02em;line-height:1}
   .verdict .lab{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-top:7px}
+  .verdict .alert{font-size:12.5px;margin-top:8px;opacity:.85}
   .v-ok{background:#eef6f1;border-color:#c5e0d2;color:var(--ok)}
   .v-warn{background:#fbf5e6;border-color:#ecdcb4;color:var(--warn)}
   .v-bad{background:#fbeeed;border-color:#eccbc7;color:var(--bad)}
 
   .bar{margin:11px 0}
-  .bar .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px}
-  .bar .top b{font-variant-numeric:tabular-nums;font-weight:600}
+  .bar .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;gap:10px}
+  .bar .top b{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
   .track{height:7px;background:#eceff2;border-radius:4px;overflow:hidden}
   .fill{height:100%;background:var(--accent);border-radius:4px}
   .bar.na .top{color:var(--muted)} .bar.na .fill{background:#cdd3da}
   .wt{font-size:11px;color:var(--muted);margin-top:3px}
 
-  ul.reasons{margin:12px 0 0;padding-left:17px}
+  ul.reasons{margin:10px 0 0;padding-left:17px}
   ul.reasons li{margin:5px 0;font-size:13.5px}
   .note{font-size:12px;color:var(--muted);margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
   .warnbox{background:#fbf5e6;border:1px solid #ecdcb4;border-radius:7px;padding:9px 11px;
            font-size:12.5px;color:#7a5c15;margin-bottom:14px}
+  .nabox{background:#f3f5f7;border:1px dashed var(--line);border-radius:7px;padding:12px 13px;
+         font-size:13px;color:var(--muted)}
   .empty{color:var(--muted);text-align:center;padding:46px 10px;font-size:14px}
   .err{background:#fbeeed;border:1px solid #eccbc7;color:var(--bad);padding:11px;border-radius:7px;font-size:13.5px}
-  details{margin-top:14px} summary{cursor:pointer;font-size:12px;color:var(--muted)}
   pre{background:#f3f5f7;border:1px solid var(--line);border-radius:7px;padding:11px;
-      overflow:auto;font-size:11.5px;max-height:300px;margin-top:9px}
+      overflow:auto;font-size:11.5px;max-height:340px;margin-top:9px}
+
+  /* ---- per-module sections ---- */
+  .section{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+           margin-top:18px;overflow:hidden}
+  .section > summary{list-style:none;cursor:pointer;padding:13px 18px;display:flex;
+                     justify-content:space-between;align-items:center;gap:14px;
+                     background:#fbfcfd;border-bottom:1px solid var(--line)}
+  .section > summary::-webkit-details-marker{display:none}
+  .section:not([open]) > summary{border-bottom:0}
+  .sec-title{font-size:14.5px;font-weight:650;letter-spacing:-.005em}
+  .member{font-size:12px;color:var(--muted);margin-top:3px}
+  .member .sid{font-variant-numeric:tabular-nums}
+  .chev{color:var(--muted);font-size:11px;white-space:nowrap}
+  .section[open] .chev::after{content:"hide"} .section:not([open]) .chev::after{content:"show"}
+  .sec-body{padding:16px 18px}
+  .headnum{display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;
+           border-radius:6px;background:#e8eef1;color:var(--accent);font-size:12px;font-weight:700;
+           margin-right:9px;vertical-align:1px}
+
+  .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px 20px;margin:8px 0 0}
+  .kv .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.055em}
+  .kv .v{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;word-break:break-word;margin-top:2px}
+  .kv .v.navalue{font-weight:400;color:var(--muted);font-size:12.5px;font-style:italic}
+  .grouphead{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+             margin:20px 0 8px;padding-top:14px;border-top:1px dashed var(--line)}
+  .sec-body > .grouphead:first-child{margin-top:0;padding-top:0;border-top:0}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;
+        border:1px solid;vertical-align:1px}
+  .pill.ok{background:#eef6f1;border-color:#c5e0d2;color:var(--ok)}
+  .pill.bad{background:#fbeeed;border-color:#eccbc7;color:var(--bad)}
+  .pill.warn{background:#fbf5e6;border-color:#ecdcb4;color:#7a5c15}
+  .pill.neutral{background:#f0f2f4;border-color:var(--line);color:var(--muted)}
+  table.wtab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  table.wtab th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+                color:var(--muted);font-weight:600;padding:0 10px 6px 0;border-bottom:1px solid var(--line)}
+  table.wtab td{padding:7px 10px 7px 0;border-bottom:1px solid #f0f2f4;font-variant-numeric:tabular-nums}
+  table.wtab td:first-child{font-weight:600;font-variant-numeric:normal}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
+  details.raw{margin-top:16px} details.raw > summary{cursor:pointer;font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -73,7 +114,7 @@
   <header>
     <div>
       <h1>SinhalaCheck</h1>
-      <div class="sub">Sinhala misinformation detection &middot; R26-IT-158 &middot; SLIIT</div>
+      <div class="sub">Sinhala misinformation detection &middot; R26-IT-158 &middot; SLIIT &middot; integrated system (PP2)</div>
     </div>
     <div class="status" id="status">
       <span><span class="dot" id="d1"></span>Module 1 &middot; content</span>
@@ -81,44 +122,60 @@
     </div>
   </header>
 
-  <div class="grid">
-    <div class="panel">
-      <h2>Input</h2>
-      <label for="text">Article text or forwarded message</label>
-      <textarea id="text" placeholder="Paste Sinhala news text or a WhatsApp forward..."></textarea>
-
-      <label for="url">Source URL <span style="text-transform:none">— optional; enables Module 2</span></label>
-      <input id="url" placeholder="https://www.adaderana.lk/news/...">
-
-      <div class="row">
-        <div>
-          <label for="date">Published date — optional</label>
-          <input id="date" type="date">
+  <div class="panel">
+    <h2>Input</h2>
+    <div class="inputgrid">
+      <div>
+        <label for="text">Article text or forwarded message</label>
+        <textarea id="text" placeholder="Paste Sinhala news text, a WhatsApp forward, or a link..."></textarea>
+      </div>
+      <div>
+        <label for="url">Source URL <span style="text-transform:none">&mdash; optional; enables Module 2 and article fetch</span></label>
+        <input id="url" placeholder="https://www.adaderana.lk/news/...">
+        <div class="row">
+          <div>
+            <label for="date">Published date &mdash; optional</label>
+            <input id="date" type="date">
+          </div>
+          <div>
+            <label for="cross">Corroborating sources &mdash; optional</label>
+            <input id="cross" type="number" min="0" placeholder="e.g. 3">
+          </div>
         </div>
-        <div>
-          <label for="cross">Corroborating sources — optional</label>
-          <input id="cross" type="number" min="0" placeholder="e.g. 3">
+        <button id="go">Analyse</button>
+        <div class="samples">
+          <button data-s="1">Sample: credible article</button>
+          <button data-s="2">Sample: suspicious forward</button>
+          <button data-s="clear">Clear</button>
         </div>
       </div>
-
-      <button id="go">Analyse</button>
-
-      <div class="samples">
-        <button data-s="1">Sample: credible article</button>
-        <button data-s="2">Sample: suspicious forward</button>
-        <button data-s="clear">Clear</button>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>Result</h2>
-      <div id="out"><div class="empty">Results will appear here.</div></div>
     </div>
   </div>
+
+  <div id="out"><div class="panel" style="margin-top:18px"><div class="empty">Results will appear here.</div></div></div>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
+
+/* Member attribution. The panel needs to see whose work each section is, so the
+   names live next to the numbers rather than in a slide. */
+const MEMBERS = {
+  m1: {n:1, title:'NLP Content Credibility', name:'Kaweeshwara P.D.S.', id:'IT22331304'},
+  m2: {n:2, title:'Source Credibility &amp; Temporal Verification', name:'Caldera S.T.H', id:'IT22370778'}
+};
+
+/* Module 1's validation figures come from its own /info endpoint, which is not proxied
+   through fusion. They are constants of the trained checkpoint, reproduced here and
+   labelled as reported so nothing on screen is an unlabelled guess. */
+const M1_VALIDATION = {
+  'Model':            'LaBSE, fine-tuned',
+  'Protocol':         '5-fold cross-validation, pooled out-of-fold',
+  'Macro-F1':         '0.753 &plusmn; 0.013',
+  'Accuracy':         '0.777',
+  'Corpus size':      'n = 3,000 (LIRNEasia)',
+  'vs TF-IDF + SVM':  '+0.058 macro-F1 (95% CI 0.040&ndash;0.076)'
+};
 
 const SAMPLES = {
   1: {text:"කොරෝනා වෛරසය මේ වන විට රටවල් 200කට අධික සංඛ්‍යාවකට පැතිර ගොස් තිබේ. එම රටවලින් සැලකිය යුතු සංඛ්‍යාවක් ජාත්‍යන්තර සෞඛ්‍ය මාර්ගෝපදේශ අනුගමනය කරමින් සිටී. සෞඛ්‍ය අමාත්‍යාංශය පවසන පරිදි නව රෝගීන් සංඛ්‍යාව පහත වැටී ඇත.",
@@ -144,70 +201,357 @@ document.querySelectorAll('.samples button').forEach(b=>{
   };
 });
 
+/* ------------------------------------------------------------------ helpers */
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const has = v => v !== null && v !== undefined && v !== '';
 const pct = v => (v*100).toFixed(1) + '%';
+const num = (v,d=3) => Number(v).toFixed(d);
 
-function bar(name, val, weight){
-  if(val === null || val === undefined){
-    return `<div class="bar na"><div class="top"><span>${name}</span><b>not available</b></div>
-            <div class="track"><div class="fill" style="width:0%"></div></div>
-            <div class="wt">no signal — excluded from the score</div></div>`;
-  }
-  const w = weight !== undefined ? `<div class="wt">effective weight ${(weight*100).toFixed(0)}%</div>` : '';
-  return `<div class="bar"><div class="top"><span>${name}</span><b>${pct(val)}</b></div>
-          <div class="track"><div class="fill" style="width:${(val*100).toFixed(1)}%"></div></div>${w}</div>`;
+/* A field that the service did not return is shown as unavailable, with the reason.
+   No neutral placeholder is ever substituted. */
+function kvField(k, v, reason){
+  const val = has(v)
+    ? `<div class="v">${v}</div>`
+    : `<div class="v navalue">unavailable${reason ? ' &mdash; ' + esc(reason) : ''}</div>`;
+  return `<div><div class="k">${k}</div>${val}</div>`;
+}
+function kvBlock(fields, reason){
+  return `<div class="kv">${fields.map(f => kvField(f[0], f[1], f[2] || reason)).join('')}</div>`;
+}
+function boolPill(v, trueLabel, falseLabel, trueIsGood){
+  if(!has(v)) return null;
+  const good = trueIsGood ? v : !v;
+  return `<span class="pill ${good?'ok':'warn'}">${v ? trueLabel : falseLabel}</span>`;
 }
 
-function render(d){
+function bar(name, val, caption, reason){
+  if(!has(val)){
+    return `<div class="bar na"><div class="top"><span>${name}</span><b>not available</b></div>
+            <div class="track"><div class="fill" style="width:0%"></div></div>
+            <div class="wt">${esc(reason || 'no signal — excluded from the score')}</div></div>`;
+  }
+  const cap = caption ? `<div class="wt">${caption}</div>` : '';
+  return `<div class="bar"><div class="top"><span>${name}</span><b>${pct(val)}</b></div>
+          <div class="track"><div class="fill" style="width:${(val*100).toFixed(1)}%"></div></div>${cap}</div>`;
+}
+
+function section(head, sub, bodyHtml, open){
+  return `<details class="section"${open?' open':''}>
+    <summary>
+      <div><div class="sec-title">${head}</div><div class="member">${sub}</div></div>
+      <span class="chev"></span>
+    </summary>
+    <div class="sec-body">${bodyHtml}</div>
+  </details>`;
+}
+function moduleHead(m){
+  return `<span class="headnum">${m.n}</span>Module ${m.n} &mdash; ${m.title}`;
+}
+function memberLine(m){
+  return `${m.name} &middot; <span class="sid">${m.id}</span>`;
+}
+function rawBlock(label, obj){
+  return `<details class="raw"><summary>${label}</summary><pre>${
+    esc(JSON.stringify(obj, null, 2))}</pre></details>`;
+}
+
+/* ------------------------------------------------- combined verdict (top) */
+function renderVerdict(d){
   const v = d.verdict;
   const cls = v==='CREDIBLE' ? 'v-ok' : v==='UNCERTAIN' ? 'v-warn' : 'v-bad';
-  const eff = d.fusion_detail.effective_weights || {};
+  const eff = (d.fusion_detail && d.fusion_detail.effective_weights) || {};
+  const mods = d.modules || {};
+  const m2reason = mods.module2 && !mods.module2.available ? mods.module2.reason : null;
 
-  let html = `<div class="verdict ${cls}">
+  let h = `<div class="verdict ${cls}">
       <div class="score">${pct(d.final_score)}</div>
-      <div class="lab">${v}</div>
+      <div class="lab">${esc(v)}</div>
+      ${has(d.alert) ? `<div class="alert">${esc(d.alert)}</div>` : ''}
     </div>`;
 
-  if(!d.weights_provenance.is_fitted){
-    html += `<div class="warnbox"><b>Placeholder weights.</b> These combination weights have not
-      been fitted to data yet — run <code>scripts/fit_fusion_weights.py</code>. Treat the
-      individual module scores as meaningful and the combined figure as provisional.</div>`;
+  if(d.weights_provenance && !d.weights_provenance.is_fitted){
+    h += `<div class="warnbox"><b>Placeholder weights.</b> These combination weights have not
+      been fitted to data yet (<code>method: ${esc(d.weights_provenance.method)}</code>) &mdash; run
+      <code>scripts/fit_fusion_weights.py</code>. Treat each module's own score as meaningful and
+      the combined figure as provisional.</div>`;
   }
 
-  html += bar('Content credibility', d.breakdown.content, eff.content);
-  html += bar('Source credibility',  d.breakdown.source,  eff.source);
-  html += bar('Recency',             d.breakdown.temporal, eff.temporal);
+  const wcap = k => has(eff[k]) ? `effective weight ${(eff[k]*100).toFixed(0)}%` : '';
+  h += bar('Content credibility &middot; Module 1', d.breakdown.content, wcap('content'));
+  h += bar('Source credibility &middot; Module 2',  d.breakdown.source,  wcap('source'),
+           m2reason || 'Module 2 returned no source score');
+  h += bar('Recency &middot; Module 2',             d.breakdown.temporal, wcap('temporal'),
+           m2reason || 'Module 2 returned no temporal score');
 
-  if(d.fusion_detail.renormalised){
-    html += `<div class="note">Only ${d.fusion_detail.signals_used.join(' and ')} available;
+  if(d.fusion_detail && d.fusion_detail.renormalised){
+    h += `<div class="note">Only ${esc(d.fusion_detail.signals_used.join(' and '))} available;
       weights renormalised over the signals present rather than substituting a neutral value
-      for ${d.fusion_detail.signals_missing.join(' and ')}.</div>`;
+      for ${esc(d.fusion_detail.signals_missing.join(' and '))}.</div>`;
   }
-
   if(d.reasons && d.reasons.length){
-    html += `<ul class="reasons">${d.reasons.map(r=>`<li>${r}</li>`).join('')}</ul>`;
+    h += `<ul class="reasons">${d.reasons.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>`;
+  }
+  return `<div class="panel" style="margin-top:18px">
+    <h2>Combined verdict &middot; integrated system</h2>${h}</div>`;
+}
+
+/* --------------------------------------------------------------- module 1 */
+function renderModule1(d){
+  const m = d.module1;
+  const st = (d.modules && d.modules.module1) || {};
+  if(!m || !Object.keys(m).length){
+    return section(moduleHead(MEMBERS.m1), memberLine(MEMBERS.m1),
+      `<div class="nabox"><b>Not available.</b> ${esc(st.reason || 'Module 1 returned no result.')}</div>`, true);
+  }
+  const lf = m.linguistic_features || {};
+  let h = '';
+
+  h += `<div class="grouphead">Content score</div>`;
+  h += bar('P(CREDIBLE) &mdash; content score', m.content_score,
+           has(m.label) ? `classified <b>${esc(m.label)}</b> at a 0.50 decision threshold` : '');
+  h += kvBlock([
+    ['Label',      has(m.label) ? `<span class="pill ${m.label==='CREDIBLE'?'ok':'bad'}">${esc(m.label)}</span>` : null],
+    ['Confidence', has(m.confidence) ? pct(m.confidence) : null],
+    ['Script detected', has(m.script) ? esc(m.script) : null],
+    ['Characters analysed', has(m.n_characters) ? m.n_characters.toLocaleString() : null]
+  ], 'not returned by /predict');
+
+  h += `<div class="grouphead">Class probabilities (softmax over both classes)</div>`;
+  if(m.probabilities && Object.keys(m.probabilities).length){
+    for(const [k, p] of Object.entries(m.probabilities)){
+      h += bar(esc(k), p, '');
+    }
+  }else{
+    h += `<div class="nabox">Both class probabilities unavailable &mdash; /predict returned no
+          <code>probabilities</code> object.</div>`;
   }
 
-  const p = d.weights_provenance;
-  html += `<div class="note">Weights: ${p.method}${p.n_samples?` · fitted on ${p.n_samples} documents`:''}.
-     Module 1: LaBSE, cross-validated macro-F1 0.753 ± 0.013 (n=3,000).</div>`;
+  h += `<div class="grouphead">Linguistic features (reported, not fused)</div>`;
+  h += kvBlock([
+    ['Emotional intensity', has(lf.emotional_intensity) ? num(lf.emotional_intensity) + ' <span class="wt" style="display:inline">/100 words</span>' : null],
+    ['Certainty density',   has(lf.certainty_density) ? num(lf.certainty_density) + ' <span class="wt" style="display:inline">certainty vs hedging</span>' : null],
+    ['Urgency markers',     has(lf.urgency_markers) ? num(lf.urgency_markers) + ' <span class="wt" style="display:inline">/100 words</span>' : null],
+    ['Headline coherence',  has(lf.headline_coherence) ? num(lf.headline_coherence) : null,
+                            'no separate headline field is supplied to the model']
+  ], 'not returned by /predict');
 
-  html += `<details><summary>Raw response</summary><pre>${
-     JSON.stringify(d,null,2).replace(/</g,'&lt;')}</pre></details>`;
+  h += `<div class="grouphead">Input handling</div>`;
+  h += kvBlock([
+    ['512-token limit', has(m.truncated)
+        ? (m.truncated
+            ? `<span class="pill warn">truncated</span> <span class="wt" style="display:inline">opening section scored</span>`
+            : `<span class="pill ok">within limit</span> <span class="wt" style="display:inline">whole text scored</span>`)
+        : null],
+    ['Model source', has(m.model_source) ? `<span class="mono">${esc(m.model_source)}</span>` : null]
+  ], 'not returned by /predict');
 
+  h += `<div class="grouphead">Model validation (as reported by Module 1 /info)</div>`;
+  h += kvBlock(Object.entries(M1_VALIDATION));
+
+  h += rawBlock('Raw Module 1 response (/predict)', m);
+  return section(moduleHead(MEMBERS.m1), memberLine(MEMBERS.m1), h, true);
+}
+
+/* --------------------------------------------------------------- module 2 */
+function renderModule2(d){
+  const m = d.module2;
+  const st = (d.modules && d.modules.module2) || {};
+  if(!m){
+    return section(moduleHead(MEMBERS.m2), memberLine(MEMBERS.m2),
+      `<div class="nabox"><b>Not available for this input.</b><br>${
+        esc(st.reason || 'Module 2 was not called.')}<br><br>
+        Its signals were excluded from the combined score rather than replaced with a neutral
+        value, so nothing below is inferred. Supply a source URL to enable it.</div>`, true);
+  }
+  const b = m.breakdown || {};
+  let h = '';
+
+  h += `<div class="grouphead">Source &amp; temporal verdict</div>`;
+  h += bar('Source credibility (hybrid: rule + ML)', m.source_score,
+           has(m.source_label) ? `risk level <b>${esc(m.source_label)}</b>` : '');
+  h += bar('Temporal score (recency)', m.temporal_score,
+           has(m.time_label) ? `time label <b>${esc(m.time_label)}</b>` : '');
+  h += kvBlock([
+    ['Source label',       has(m.source_label) ? esc(m.source_label) : null],
+    ['Time label',         has(m.time_label) ? esc(m.time_label) : null],
+    ['Alert',              has(m.alert) ? esc(m.alert) : null],
+    ['Overall confidence', has(m.confidence) ? pct(m.confidence) : null]
+  ], 'not returned by /analyze');
+
+  h += `<div class="grouphead">Feature breakdown</div>`;
+  h += bar('Registration',  b.registration, '', 'not returned by /analyze');
+  h += bar('Domain age',    b.domain_age,   '', 'not returned by /analyze');
+  h += bar('History',       b.history,      '', 'not returned by /analyze');
+  h += bar('Editorial',     b.editorial,    '', 'not returned by /analyze');
+  h += bar('Cross-coverage',b.cross,        '', 'not returned by /analyze');
+
+  h += `<div class="grouphead">Diagnostics</div>`;
+  h += kvBlock([
+    ['ML prediction',   has(m.ml_prediction)
+        ? `<span class="pill ${m.ml_prediction===1?'ok':'bad'}">${m.ml_prediction} &mdash; ${m.ml_prediction===1?'trusted':'not trusted'}</span>` : null],
+    ['ML confidence',       has(m.ml_confidence) ? pct(m.ml_confidence) : null],
+    ['ML P(trusted)',       has(m.ml_probability_trusted) ? pct(m.ml_probability_trusted) : null],
+    ['Rule score',          has(m.rule_score) ? num(m.rule_score) : null],
+    ['Source tier',         has(m.source_tier) ? `<span class="pill ${m.source_tier==='trusted'?'ok':m.source_tier==='blacklisted'?'bad':'neutral'}">${esc(m.source_tier)}</span>` : null],
+    ['Known source',        boolPill(m.is_known_source, 'in knowledge base', 'unknown source', true)],
+    ['Sri Lankan source',   boolPill(m.is_sri_lankan_source, 'yes', 'no', true)],
+    ['Mentions Sri Lanka',  boolPill(m.mentions_sri_lanka, 'yes', 'no', true)],
+    ['Recirculated',        boolPill(m.recirculated, 'yes', 'no', false)],
+    ['Age in days',         has(m.age_days) ? num(m.age_days, 1) : null,
+                            'no publication date was determined'],
+    ['Detected language',   has(m.detected_language) ? esc(m.detected_language) : null],
+    ['Publisher',           has(m.publisher) ? esc(m.publisher) : null],
+    ['Domain',              has(m.domain) ? `<span class="mono">${esc(m.domain)}</span>` : null]
+  ], 'not returned by /analyze');
+
+  if(m.reasons && m.reasons.length){
+    h += `<div class="grouphead">Module 2 reasons</div>
+          <ul class="reasons">${m.reasons.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>`;
+  }
+
+  h += rawBlock('Raw Module 2 response (/analyze)', m);
+  return section(moduleHead(MEMBERS.m2), memberLine(MEMBERS.m2), h, true);
+}
+
+/* ----------------------------------------------------------------- fusion */
+function renderFusion(d){
+  const f = d.fusion_detail || {};
+  const p = d.weights_provenance || {};
+  const cfg = f.configured_weights || {};
+  const eff = f.effective_weights || {};
+  const used = f.signals_used || [];
+  const missing = f.signals_missing || [];
+  const LABEL = {content:'Content (Module 1)', source:'Source (Module 2)', temporal:'Recency (Module 2)'};
+  const keys = Object.keys(cfg).length ? Object.keys(cfg) : Object.keys(d.breakdown || {});
+
+  let h = `<div class="grouphead">Combination arithmetic</div>`;
+  h += `<table class="wtab"><thead><tr>
+      <th>Signal</th><th>Value</th><th>Configured weight</th><th>Effective weight</th><th>Status</th>
+    </tr></thead><tbody>`;
+  for(const k of keys){
+    const val = d.breakdown ? d.breakdown[k] : null;
+    const isUsed = used.indexOf(k) !== -1;
+    h += `<tr>
+      <td>${LABEL[k] || esc(k)}</td>
+      <td>${has(val) ? pct(val) : '<span class="navalue">unavailable</span>'}</td>
+      <td>${has(cfg[k]) ? num(cfg[k], 2) : '&mdash;'}</td>
+      <td>${has(eff[k]) ? num(eff[k], 4) : '<span class="navalue">0 — dropped</span>'}</td>
+      <td>${isUsed ? '<span class="pill ok">used</span>' : '<span class="pill neutral">missing</span>'}</td>
+    </tr>`;
+  }
+  h += `</tbody></table>`;
+
+  const parts = used.map(k => `${num(eff[k],4)} &times; ${pct(d.breakdown[k])}`).join(' + ');
+  if(parts){
+    h += `<div class="note" style="border-top:0;padding-top:8px">
+      final score = ${parts} = <b>${pct(d.final_score)}</b> &rarr; ${esc(d.verdict)}</div>`;
+  }
+
+  h += kvBlock([
+    ['Signals used',    used.length ? used.map(s=>esc(s)).join(', ') : null],
+    ['Signals missing', missing.length ? missing.map(s=>esc(s)).join(', ')
+                                       : '<span class="pill ok">none</span>'],
+    ['Renormalised',    has(f.renormalised)
+        ? (f.renormalised
+            ? '<span class="pill warn">yes — weights rescaled over available signals</span>'
+            : '<span class="pill ok">no — all signals present</span>')
+        : null]
+  ]);
+
+  h += `<div class="grouphead">Weights provenance</div>`;
+  h += kvBlock([
+    ['Fitted', has(p.is_fitted)
+        ? (p.is_fitted ? '<span class="pill ok">is_fitted: true</span>'
+                       : '<span class="pill warn">is_fitted: false — placeholder</span>')
+        : null],
+    ['Method',      has(p.method) ? `<span class="mono">${esc(p.method)}</span>` : null],
+    ['Fitted on',   has(p.fitted_on) ? esc(p.fitted_on) : null, 'weights have not been fitted yet'],
+    ['Fitted at',   has(p.fitted_at) ? esc(p.fitted_at) : null, 'weights have not been fitted yet'],
+    ['Samples',     has(p.n_samples) ? Number(p.n_samples).toLocaleString() : null, 'weights have not been fitted yet']
+  ]);
+
+  h += rawBlock('Raw fusion detail', {fusion_detail: f, weights_provenance: p, modules: d.modules});
+  return section('<span class="headnum">&Sigma;</span>Fusion &mdash; signal combination',
+                 'Integration layer &middot; weighted combination over available signals', h, true);
+}
+
+/* ---------------------------------------------------------- article fetch */
+function renderFetch(d){
+  const s = d.source_fetch;
+  if(!s) return '';
+  const head = '<span class="headnum">&#8595;</span>Article fetch';
+  const sub = 'Integration layer &middot; retrieval and extraction from the source URL';
+
+  if(!s.ok){
+    return section(head, sub,
+      `<div class="nabox"><b>The article could not be retrieved.</b><br>
+        ${esc(s.reason || 'no reason reported')}</div>
+       ${kvBlock([
+          ['URL requested', has(s.url) ? `<span class="mono">${esc(s.url)}</span>` : null],
+          ['Title', has(s.title) ? esc(s.title) : null, 'no title could be read from the page']
+        ])}
+       ${rawBlock('Raw source_fetch', s)}`, true);
+  }
+
+  const x = s.extraction || {};
+  let h = `<div class="grouphead">Retrieved article</div>`;
+  h += kvBlock([
+    ['Title', has(s.title) ? esc(s.title) : null, 'no title tag or h1 found on the page'],
+    ['Characters extracted', has(s.n_characters) ? s.n_characters.toLocaleString() : null],
+    ['Sinhala characters', has(s.sinhala_characters)
+        ? `${s.sinhala_characters.toLocaleString()} <span class="wt" style="display:inline">(${
+            s.n_characters ? (100*s.sinhala_characters/s.n_characters).toFixed(1) : '0'}% of body)</span>`
+        : null],
+    ['Published date', has(s.published_date) ? esc(s.published_date) : null,
+                       'no publication date could be read from the page']
+  ]);
+
+  h += `<div class="grouphead">Extraction provenance</div>`;
+  h += kvBlock([
+    ['Body text from', has(x.body_from) ? `<span class="mono">${esc(x.body_from)}</span>` : null],
+    ['Date from',      has(x.date_from) ? `<span class="mono">${esc(x.date_from)}</span>` : null],
+    ['Final URL',      has(x.final_url) ? `<span class="mono">${esc(x.final_url)}</span>` : null]
+  ], 'not reported by the fetcher');
+
+  h += rawBlock('Raw source_fetch', s);
+  return section(head, sub, h, true);
+}
+
+/* ------------------------------------------------------------------ render */
+function render(d){
+  let html = renderVerdict(d);
+  html += renderModule1(d);
+  html += renderModule2(d);
+  html += renderFusion(d);
+  html += renderFetch(d);
+  html += `<div class="panel" style="margin-top:18px">
+    <div class="note" style="border-top:0;padding-top:0;margin-top:0">
+      Module 1: LaBSE, cross-validated macro-F1 0.753 &plusmn; 0.013 (n=3,000).
+      Weights: <span class="mono">${esc((d.weights_provenance||{}).method || 'unknown')}</span>.
+      Every value above is reported by the service that produced it; fields a service did not
+      return are shown as unavailable rather than filled in.
+    </div>
+    ${rawBlock('Full raw /analyze response', d)}
+  </div>`;
   $('out').innerHTML = html;
 }
 
 $('go').onclick = async () => {
   const text = $('text').value.trim();
-  if(!text){ $('out').innerHTML = '<div class="err">Enter some text to analyse.</div>'; return; }
+  const url  = $('url').value.trim();
+  if(!text && !url){
+    $('out').innerHTML = '<div class="panel" style="margin-top:18px"><div class="err">Enter article text or a source URL to analyse.</div></div>';
+    return;
+  }
 
-  const body = { text };
-  if($('url').value.trim()) body.url = $('url').value.trim();
+  const body = {};
+  if(text) body.text = text;
+  if(url) body.url = url;
   if($('date').value) body.published_date = new Date($('date').value).toISOString();
   if($('cross').value !== '') body.cross_count = parseInt($('cross').value, 10);
 
   $('go').disabled = true; $('go').textContent = 'Analysing...';
-  $('out').innerHTML = '<div class="empty">Running content model...</div>';
+  $('out').innerHTML = '<div class="panel" style="margin-top:18px"><div class="empty">Fetching article and running the modules...</div></div>';
   try{
     const r = await fetch('/analyze', {method:'POST', headers:{'Content-Type':'application/json'},
                                        body: JSON.stringify(body)});
@@ -215,8 +559,8 @@ $('go').onclick = async () => {
     if(!r.ok) throw new Error(j.detail || ('HTTP ' + r.status));
     render(j);
   }catch(e){
-    $('out').innerHTML = `<div class="err"><b>Analysis failed.</b><br>${e.message}
-      <br><br>Check that all three services are running — see README.</div>`;
+    $('out').innerHTML = `<div class="panel" style="margin-top:18px"><div class="err"><b>Analysis failed.</b><br>${esc(e.message)}
+      <br><br>Check that all three services are running &mdash; see README.</div></div>`;
   }finally{
     $('go').disabled = false; $('go').textContent = 'Analyse';
   }
