@@ -1,0 +1,526 @@
+import React, { useState, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Share } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
+
+const SPACE_URL = 'https://wishmitharuwanpathirana-sinhalacheck-api.hf.space';
+const HISTORY_KEY = 'sinhalacheck_history';
+const SETTINGS_KEY = 'sinhalacheck_settings';
+
+const INK = '#1B2340';
+const INDIGO = '#2A3B8F';
+const INDIGO_DARK = '#1E2C6E';
+const PAPER = '#F7F5F0';
+const CARD = '#FFFFFF';
+const BORDER = '#E4E1D8';
+const MUTED = '#8B8878';
+const GOLD = '#C9A227';
+const EMERALD = '#1F7A5C';
+const EMERALD_BG = '#E7F3EE';
+const AMBER = '#A6720B';
+const AMBER_BG = '#FBF1DD';
+const BRICK = '#B23A3A';
+const BRICK_BG = '#FBEBEB';
+
+const fetchWithTimeout = async (url: string, options: any = {}, timeout = 90000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+};
+
+const calculateYearsOld = (dateStr: string): number | null => {
+  if (!dateStr) return null;
+  const inputDate = new Date(dateStr);
+  if (isNaN(inputDate.getTime())) return null;
+  const now = new Date();
+  const years = (now.getTime() - inputDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
+  return Math.round(years * 10) / 10;
+};
+
+const extractTextFromHtml = (html: string): string => {
+  let cleaned = html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.slice(0, 3000);
+};
+
+const isValidUrl = (str: string): boolean => {
+  try {
+    const u = new URL(str);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const verdictStyle = (label: string) => {
+  if (label === 'CREDIBLE') return { fg: EMERALD, bg: EMERALD_BG, ring: EMERALD };
+  if (label === 'UNCERTAIN') return { fg: AMBER, bg: AMBER_BG, ring: AMBER };
+  return { fg: BRICK, bg: BRICK_BG, ring: BRICK };
+};
+
+const verdictDescription = (label: string) => {
+  if (label === 'CREDIBLE') {
+    return 'This content appears trustworthy based on our analysis. Always verify important information from official sources before sharing.';
+  }
+  if (label === 'UNCERTAIN') {
+    return 'We could not confidently determine if this is true or false. Treat it with caution — cross-check with reliable news sources before believing or sharing.';
+  }
+  return 'This content shows strong signs of being false or misleading. Avoid sharing this, and verify from trusted, official sources.';
+};
+
+export default function HomeScreen() {
+  const [text, setText] = useState('');
+  const [urlInput, setUrlInput] = useState('');
+  const [publishDate, setPublishDate] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState('');
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState('');
+  const [showLime, setShowLime] = useState(true);
+  const [fontScale, setFontScale] = useState(false);
+
+  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
+  const [feedbackGiven, setFeedbackGiven] = useState<'correct' | 'incorrect' | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadSettings = async () => {
+        try {
+          const stored = await AsyncStorage.getItem(SETTINGS_KEY);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setShowLime(parsed.showLime ?? true);
+            setFontScale(parsed.fontScale ?? false);
+          }
+        } catch (e) {
+          console.log('Failed to load settings', e);
+        }
+      };
+      loadSettings();
+    }, [])
+  );
+
+  const fs = (base: number) => (fontScale ? Math.round(base * 1.3) : base);
+
+  const saveToHistory = async (id: string, checkedText: string, response: any) => {
+    try {
+      const existing = await AsyncStorage.getItem(HISTORY_KEY);
+      const history = existing ? JSON.parse(existing) : [];
+      const newEntry = {
+        id,
+        text: checkedText,
+        label: response.label,
+        score: response.final_score,
+        date: new Date().toLocaleString(),
+        feedback: null,
+      };
+      const updated = [newEntry, ...history].slice(0, 20);
+      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.log('Failed to save history', e);
+    }
+  };
+
+  const submitFeedback = async (verdict: 'correct' | 'incorrect') => {
+    if (!currentEntryId) return;
+    setFeedbackGiven(verdict);
+    try {
+      const existing = await AsyncStorage.getItem(HISTORY_KEY);
+      const history = existing ? JSON.parse(existing) : [];
+      const updated = history.map((item: any) =>
+        item.id === currentEntryId ? { ...item, feedback: verdict } : item
+      );
+      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.log('Failed to save feedback', e);
+    }
+  };
+
+  const shareResult = async () => {
+    if (!result) return;
+    try {
+      await Share.share({
+        message: `SinhalaCheck Verdict: ${result.label} (Score: ${result.final_score})\n\nChecked with SinhalaCheck — Sinhala Fake News Detector`,
+      });
+    } catch (e) {
+      console.log('Share failed', e);
+    }
+  };
+
+  const checkText = async () => {
+    const hasUrl = urlInput.trim().length > 0;
+    const hasText = text.trim().length > 0;
+
+    if (!hasUrl && !hasText) {
+      setError('Please enter some text or a URL to check');
+      return;
+    }
+    if (hasUrl && !isValidUrl(urlInput.trim())) {
+      setError('Please enter a valid URL (starting with http:// or https://)');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setResult(null);
+    setFeedbackGiven(null);
+    setCurrentEntryId(null);
+
+    try {
+      let textToAnalyze = text.trim();
+
+      if (hasUrl) {
+        setLoadingStage('Fetching article from URL…');
+        const pageRes = await fetchWithTimeout(urlInput.trim(), {}, 20000);
+        if (!pageRes.ok) {
+          setError('Could not fetch that URL. Please check the link and try again.');
+          setLoading(false);
+          return;
+        }
+        const html = await pageRes.text();
+        textToAnalyze = extractTextFromHtml(html);
+
+        if (textToAnalyze.length < 30) {
+          setError('Could not extract readable text from that page.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      setLoadingStage('Analyzing credibility…');
+
+      const submitRes = await fetchWithTimeout(`${SPACE_URL}/gradio_api/call/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: [textToAnalyze, 0.6, 0.8] }),
+      });
+
+      if (!submitRes.ok) {
+        setError('Server error. Please try again in a moment.');
+        return;
+      }
+
+      const submitData = await submitRes.json();
+      const eventId = submitData.event_id;
+
+      const resultRes = await fetchWithTimeout(`${SPACE_URL}/gradio_api/call/predict/${eventId}`);
+      const resultText = await resultRes.text();
+
+      const dataLines = resultText.split('\n').filter((line) => line.startsWith('data:'));
+      if (dataLines.length === 0) {
+        setError('Unexpected response from server. Please try again.');
+        return;
+      }
+
+      const lastDataLine = dataLines[dataLines.length - 1];
+      const parsed = JSON.parse(lastDataLine.replace('data:', '').trim());
+      const finalResult = parsed[0];
+
+      const newId = Date.now().toString();
+      setResult({ ...finalResult, _analyzedText: textToAnalyze });
+      setCurrentEntryId(newId);
+      await saveToHistory(newId, textToAnalyze, finalResult);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setError('Request timed out — the server might be busy, please try again.');
+      } else if (err.message?.includes('Network request failed')) {
+        setError('No internet connection. Please check your WiFi or mobile data.');
+      } else {
+        setError('Something went wrong. Please try again in a moment.');
+      }
+    } finally {
+      setLoading(false);
+      setLoadingStage('');
+    }
+  };
+
+  const yearsOld = calculateYearsOld(publishDate);
+  const vStyle = result ? verdictStyle(result.label) : null;
+  const scorePct = result ? Math.round(result.final_score * 100) : 0;
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <View style={styles.sealMark}>
+          <View style={styles.sealCheck} />
+        </View>
+        <Text style={[styles.title, { fontSize: fs(26) }]}>SinhalaCheck</Text>
+        <Text style={[styles.subtitle, { fontSize: fs(11) }]}>SINHALA MISINFORMATION VERIFIER</Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={[styles.label, { fontSize: fs(11) }]}>NEWS TEXT</Text>
+        <TextInput
+          style={[styles.input, { fontSize: fs(15) }]}
+          placeholder="Paste Sinhala news text here…"
+          placeholderTextColor="#B7B4A6"
+          multiline
+          numberOfLines={6}
+          value={text}
+          onChangeText={setText}
+        />
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={[styles.dividerText, { fontSize: fs(10) }]}>OR PASTE A LINK</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <TextInput
+          style={[styles.inputSmall, { fontSize: fs(14) }]}
+          placeholder="https://example.com/article"
+          placeholderTextColor="#B7B4A6"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          value={urlInput}
+          onChangeText={setUrlInput}
+        />
+
+        <Text style={[styles.label, { fontSize: fs(11), marginTop: 14 }]}>
+          PUBLISH DATE <Text style={styles.labelOptional}>(optional)</Text>
+        </Text>
+        <TextInput
+          style={[styles.inputSmall, { fontSize: fs(14) }]}
+          placeholder="e.g. 2020-04-01"
+          placeholderTextColor="#B7B4A6"
+          value={publishDate}
+          onChangeText={setPublishDate}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={checkText}
+          disabled={loading}
+          activeOpacity={0.85}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={[styles.buttonText, { fontSize: fs(13) }]}>CHECK CREDIBILITY</Text>
+          )}
+        </TouchableOpacity>
+
+        {loading && (
+          <Text style={[styles.loadingText, { fontSize: fs(12) }]}>
+            {loadingStage || 'This can take 15–30 seconds…'}
+          </Text>
+        )}
+        {error ? <Text style={[styles.error, { fontSize: fs(13) }]}>{error}</Text> : null}
+      </View>
+
+      {result && vStyle && (
+        <View style={styles.resultCard}>
+          <View style={styles.resultTopRow}>
+            <Text style={[styles.resultEyebrow, { fontSize: fs(11) }]}>VERDICT</Text>
+            <View style={[styles.scoreBadge, { borderColor: vStyle.ring }]}>
+              <Text style={[styles.scoreBadgeText, { color: vStyle.fg, fontSize: fs(14) }]}>{scorePct}</Text>
+            </View>
+          </View>
+
+          <Text style={[styles.verdict, { color: vStyle.fg, fontSize: fs(28) }]}>{result.label}</Text>
+          <View style={[styles.verdictPill, { backgroundColor: vStyle.bg }]}>
+            <Text style={[styles.verdictPillText, { color: vStyle.fg, fontSize: fs(12) }]}>
+              Fusion score {result.final_score}
+            </Text>
+          </View>
+
+          <Text style={[styles.verdictDescription, { fontSize: fs(13) }]}>{verdictDescription(result.label)}</Text>
+
+          {result._analyzedText && (
+            <View style={styles.quoteBox}>
+              <Text style={styles.quoteMark}>“</Text>
+              <Text style={[styles.quoteText, { fontSize: fs(13) }]} numberOfLines={4}>
+                {result._analyzedText}
+              </Text>
+            </View>
+          )}
+
+          {yearsOld !== null && yearsOld > 1 && (
+            <View style={styles.warningBanner}>
+              <Text style={[styles.warningText, { fontSize: fs(12.5) }]}>
+                ⏱ {yearsOld} years old — originally published {publishDate}
+              </Text>
+            </View>
+          )}
+
+          {showLime && result.lime_explanations && (
+            <View style={styles.limeSection}>
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={[styles.dividerText, { fontSize: fs(10) }]}>WHY THIS VERDICT</Text>
+                <View style={styles.dividerLine} />
+              </View>
+              {result.lime_explanations.map((item: any, index: number) => (
+                <View key={index} style={styles.reasonRow}>
+                  <View
+                    style={[
+                      styles.reasonDot,
+                      { backgroundColor: item.weight > 0 ? BRICK : EMERALD },
+                    ]}
+                  />
+                  <Text style={[styles.reasonWord, { fontSize: fs(14) }]}>{item.word}</Text>
+                  <Text style={[styles.reasonWeight, { fontSize: fs(13) }]}>
+                    {item.weight > 0 ? '+' : ''}{item.weight}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <TouchableOpacity style={styles.shareButton} onPress={shareResult}>
+            <Text style={[styles.shareButtonText, { fontSize: fs(13) }]}>📤 Share this result</Text>
+          </TouchableOpacity>
+
+          <View style={styles.feedbackBox}>
+            {feedbackGiven ? (
+              <Text style={[styles.feedbackThanks, { fontSize: fs(13) }]}>
+                {feedbackGiven === 'correct' ? '✅ Thanks — glad it was accurate!' : '📝 Thanks — your feedback helps improve this research.'}
+              </Text>
+            ) : (
+              <>
+                <Text style={[styles.feedbackQuestion, { fontSize: fs(13) }]}>Was this verdict correct?</Text>
+                <View style={styles.feedbackRow}>
+                  <TouchableOpacity
+                    style={[styles.feedbackBtn, styles.feedbackBtnYes]}
+                    onPress={() => submitFeedback('correct')}
+                  >
+                    <Text style={[styles.feedbackBtnText, { fontSize: fs(13) }]}>👍 Yes</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.feedbackBtn, styles.feedbackBtnNo]}
+                    onPress={() => submitFeedback('incorrect')}
+                  >
+                    <Text style={[styles.feedbackBtnText, { fontSize: fs(13) }]}>👎 No</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: PAPER },
+  content: { padding: 20, paddingTop: 56, paddingBottom: 60 },
+
+  header: { alignItems: 'center', marginBottom: 28 },
+  sealMark: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: INDIGO, alignItems: 'center', justifyContent: 'center',
+    marginBottom: 12, borderWidth: 2, borderColor: GOLD,
+  },
+  sealCheck: {
+    width: 18, height: 10,
+    borderLeftWidth: 3, borderBottomWidth: 3, borderColor: '#fff',
+    transform: [{ rotate: '-45deg' }], marginTop: -2,
+  },
+  title: { fontWeight: '800', color: INK, letterSpacing: 0.2 },
+  subtitle: { fontWeight: '600', color: MUTED, letterSpacing: 1.4, marginTop: 4 },
+
+  card: {
+    backgroundColor: CARD, borderRadius: 18, padding: 18,
+    borderWidth: 1, borderColor: BORDER,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+  label: { fontWeight: '700', color: MUTED, letterSpacing: 1, marginBottom: 8 },
+  labelOptional: { fontWeight: '400', color: '#C4C1B4', letterSpacing: 0 },
+  input: {
+    borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 12,
+    color: INK, textAlignVertical: 'top', minHeight: 120, backgroundColor: '#FCFBF9',
+  },
+  inputSmall: {
+    borderWidth: 1, borderColor: BORDER, borderRadius: 12, padding: 11,
+    color: INK, backgroundColor: '#FCFBF9',
+  },
+
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: BORDER },
+  dividerText: { fontWeight: '700', color: MUTED, letterSpacing: 1, marginHorizontal: 10 },
+
+  button: {
+    backgroundColor: INDIGO, borderRadius: 14, paddingVertical: 15,
+    alignItems: 'center', marginTop: 18,
+    shadowColor: INDIGO_DARK, shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  buttonDisabled: { backgroundColor: '#9AA3C8' },
+  buttonText: { color: '#fff', fontWeight: '700', letterSpacing: 1 },
+
+  loadingText: { textAlign: 'center', color: MUTED, marginTop: 10 },
+  error: { color: BRICK, marginTop: 12, textAlign: 'center' },
+
+  resultCard: {
+    backgroundColor: CARD, borderRadius: 18, padding: 20, marginTop: 20,
+    borderWidth: 1.5, borderColor: BORDER, borderStyle: 'dashed',
+  },
+  resultTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  resultEyebrow: { fontWeight: '700', color: MUTED, letterSpacing: 1.4 },
+  scoreBadge: {
+    width: 44, height: 44, borderRadius: 22, borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff',
+  },
+  scoreBadgeText: { fontWeight: '800' },
+
+  verdict: { fontWeight: '800', marginTop: 10, letterSpacing: 0.3 },
+  verdictPill: {
+    alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, marginTop: 8,
+  },
+  verdictPillText: { fontWeight: '700' },
+  verdictDescription: { color: '#5B5847', marginTop: 10, lineHeight: 19 },
+
+  quoteBox: { marginTop: 18, paddingLeft: 14, borderLeftWidth: 3, borderLeftColor: GOLD },
+  quoteMark: { fontSize: 28, color: GOLD, lineHeight: 20, fontWeight: '800' },
+  quoteText: { color: '#5B5847', fontStyle: 'italic', lineHeight: 19, marginTop: -6 },
+
+  warningBanner: {
+    marginTop: 16, padding: 12, borderRadius: 10,
+    backgroundColor: AMBER_BG, borderWidth: 1, borderColor: '#EBD9A8',
+  },
+  warningText: { color: AMBER, fontWeight: '700', textAlign: 'center' },
+
+  limeSection: { marginTop: 4 },
+  reasonRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
+  reasonDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
+  reasonWord: { flex: 1, color: INK, fontWeight: '600' },
+  reasonWeight: { color: MUTED, fontVariant: ['tabular-nums'] },
+
+  shareButton: {
+    marginTop: 16, paddingVertical: 10, borderRadius: 10,
+    backgroundColor: '#EEF2F8', alignItems: 'center',
+  },
+  shareButtonText: { color: INDIGO, fontWeight: '700' },
+
+  feedbackBox: {
+    marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: BORDER, alignItems: 'center',
+  },
+  feedbackQuestion: { color: MUTED, fontWeight: '600', marginBottom: 10 },
+  feedbackRow: { flexDirection: 'row', gap: 12 },
+  feedbackBtn: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  feedbackBtnYes: { backgroundColor: EMERALD_BG, borderColor: EMERALD },
+  feedbackBtnNo: { backgroundColor: BRICK_BG, borderColor: BRICK },
+  feedbackBtnText: { fontWeight: '700', color: INK },
+  feedbackThanks: { color: MUTED, fontStyle: 'italic' },
+});

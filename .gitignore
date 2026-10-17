@@ -20,3 +20,5 @@ Corpus.csv
 Corpus_published.csv
 analysis/
 *.zip
+
+.venv312/
