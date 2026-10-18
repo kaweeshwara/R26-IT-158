@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "SinhalaCheck",
+    "slug": "sinhalacheck-wishmitha",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#f4f7fb"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "lk.sliit.sinhalacheck.wishmitha"
+    },
+    "android": {
+      "package": "lk.sliit.sinhalacheck.wishmitha",
+      "permissions": []
+    }
+  }
+}

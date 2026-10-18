@@ -107,6 +107,20 @@
   table.wtab td:first-child{font-weight:600;font-variant-numeric:normal}
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
   details.raw{margin-top:16px} details.raw > summary{cursor:pointer;font-size:12px;color:var(--muted)}
+
+  /* ---- Module 4 (Wishmitha): plain-language "why" + LIME words ---- */
+  .why-text{font-size:13.5px;line-height:1.6;background:#f7f8fa;border:1px solid var(--line);
+            border-radius:7px;padding:11px 13px;margin-top:8px}
+  .langtabs{display:flex;gap:6px;margin-top:6px}
+  .langtabs button{padding:3px 11px;font-size:12px;border:1px solid var(--line);border-radius:999px;
+                   background:#f0f2f4;color:var(--muted);cursor:pointer}
+  .langtabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  ul.lime{list-style:none;margin:8px 0 0;padding:0}
+  ul.lime li{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:13.5px}
+  .lime-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .lime-dot.neg{background:var(--ok)} .lime-dot.pos{background:var(--bad)}
+  .lime-word{flex:1;font-weight:600}
+  .lime-weight{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12.5px}
 </style>
 </head>
 <body>
@@ -162,7 +176,8 @@ const $ = id => document.getElementById(id);
    names live next to the numbers rather than in a slide. */
 const MEMBERS = {
   m1: {n:1, title:'NLP Content Credibility', name:'Kaweeshwara P.D.S.', id:'IT22331304'},
-  m2: {n:2, title:'Source Credibility &amp; Temporal Verification', name:'Caldera S.T.H', id:'IT22370778'}
+  m2: {n:2, title:'Source Credibility &amp; Temporal Verification', name:'Caldera S.T.H', id:'IT22370778'},
+  m4: {n:4, title:'Fusion Engine, LIME Explainability &amp; User Application', name:'Ruwanpathirana R.P.W.M', id:'IT22259752'}
 };
 
 /* Module 1's validation figures come from its own /info endpoint, which is not proxied
@@ -517,11 +532,56 @@ function renderFetch(d){
   return section(head, sub, h, true);
 }
 
+
+/* ------------------------------------------------- Module 4: explainability */
+let M4_LANG = 'en';
+function setM4Lang(l){
+  M4_LANG = l;
+  const d = window.__last;
+  const box = document.getElementById('m4why');
+  if(box && d) box.textContent = m4Text(d, l);
+  document.querySelectorAll('.langtabs button').forEach(b => b.classList.toggle('on', b.dataset.l === l));
+}
+function m4Text(d, l){
+  const t = {en:d.natural_explanation, si:d.natural_explanation_si, ta:d.natural_explanation_ta}[l];
+  return t || d.natural_explanation || 'No explanation available.';
+}
+function renderModule4(d){
+  const m = d.module4_explanations;
+  if(!m || !m.length){
+    const why = (d.modules && d.modules.module4 && d.modules.module4.reason) || 'explanation not returned';
+    return section(moduleHead(MEMBERS.m4), memberLine(MEMBERS.m4),
+      `<div class="nabox">Explanation not available: ${esc(why)}</div>`, false);
+  }
+  const words = m.map(e => {
+    const w = Number(e.weight);
+    return `<li><span class="lime-dot ${w>=0?'pos':'neg'}"></span>
+      <span class="lime-word">${esc(e.word)}</span>
+      <span class="lime-weight">${w>=0?'+':''}${w.toFixed(4)}</span></li>`;
+  }).join('');
+  const ai = d.natural_explanation_ai && d.natural_explanation_ai !== d.natural_explanation
+    ? `<div class="grouphead">AI narration (optional, rewrites the same facts)</div><div class="why-text">${esc(d.natural_explanation_ai)}</div>` : '';
+  const h = `<div class="grouphead">Why? (plain language)</div>
+    <div class="langtabs">
+      <button data-l="en" class="on" onclick="setM4Lang('en')">EN</button>
+      <button data-l="si" onclick="setM4Lang('si')">සිං</button>
+      <button data-l="ta" onclick="setM4Lang('ta')">தமிழ்</button>
+    </div>
+    <div class="why-text" id="m4why">${esc(m4Text(d,'en'))}</div>
+    <div class="grouphead">Word-level LIME weights (words that pushed the content prediction)</div>
+    <ul class="lime">${words}</ul>
+    <div class="note">LIME describes the model's behaviour on this one text. It is not a general rule linking a word to credibility.</div>
+    ${ai}`;
+  return section(moduleHead(MEMBERS.m4), memberLine(MEMBERS.m4), h, true);
+}
+
 /* ------------------------------------------------------------------ render */
 function render(d){
+  window.__last = d; M4_LANG = 'en';
   let html = renderVerdict(d);
   html += renderModule1(d);
   html += renderModule2(d);
+  html += renderModule4(d);
   html += renderFusion(d);
   html += renderFetch(d);
   html += `<div class="panel" style="margin-top:18px">
@@ -544,7 +604,7 @@ $('go').onclick = async () => {
     return;
   }
 
-  const body = {};
+  const body = {explain: true};
   if(text) body.text = text;
   if(url) body.url = url;
   if($('date').value) body.published_date = new Date($('date').value).toISOString();
@@ -560,7 +620,7 @@ $('go').onclick = async () => {
     render(j);
   }catch(e){
     $('out').innerHTML = `<div class="panel" style="margin-top:18px"><div class="err"><b>Analysis failed.</b><br>${esc(e.message)}
-      <br><br>Check that all three services are running &mdash; see README.</div></div>`;
+      <br><br>Check that all four services are running &mdash; see README.</div></div>`;
   }finally{
     $('go').disabled = false; $('go').textContent = 'Analyse';
   }
